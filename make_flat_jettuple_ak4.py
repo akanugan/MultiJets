@@ -157,11 +157,26 @@ parser.add_argument("file_num", help="which file to run on")
 args = parser.parse_args()
 
 file_list = [line.strip('\n') for line in open(args.inFile).readlines()]
+
+
 # Ntuples loc
 ntup_wjets_loc = '/eos/uscms/store/user/abhijith/WJetsToQQ/WJetsToQQ_HT-800toInf/'
+#HT 300 - 500
+#ntup_qcd_loc = '/eos/uscms/store/group/lpctrig/abhijith/mc_samples2017/QCD_HT300to500_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT300to500_TuneCP5_13TeV-madgraph-pythia8_v1/210506_033859/0000/'
+#HT 500 - 700
+#ntup_qcd_loc = '/eos/uscms/store/group/lpctrig/abhijith/mc_samples2017/QCD_HT500to700_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT500to700_TuneCP5_13TeV-madgraph-pythia8_v2/210506_034113/0000/'
+#HT 700 - 1000 
+#ntup_qcd_loc = '/eos/uscms/store/group/lpctrig/abhijith/mc_samples2017/QCD_HT700to1000_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT700to1000_TuneCP5_13TeV-madgraph-pythia8_v1/210506_034329/0000/'
+#HT 1000 - 1500
+#ntup_qcd_loc = '/eos/uscms/store/group/lpctrig/abhijith/mc_samples2017/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1/210506_034542/0000/'
+#HT 1500 - 2000
+#ntup_qcd_loc = '/eos/uscms/store/group/lpctrig/abhijith/mc_samples2017/QCD_HT1500to2000_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT1500to2000_TuneCP5_13TeV-madgraph-pythia8_v2/210506_034758/0000/'
+#HT 2000 - Inf
+ntup_qcd_loc = '/eos/uscms/store/group/lpctrig/abhijith/mc_samples2017/QCD_HT2000toInf_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT2000toInf_TuneCP5_13TeV-madgraph-pythia8_v2/210506_035011/0000/'
 
 
-InFile = ntup_wjets_loc + file_list[int(args.file_num)]
+#InFile = ntup_wjets_loc + file_list[int(args.file_num)]
+InFile = ntup_qcd_loc + file_list[int(args.file_num)]
 #InFile = 'WJetsToQQ_HT-800toInf_1.root'
 
 weight=1.0
