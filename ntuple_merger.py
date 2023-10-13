@@ -24,10 +24,10 @@ HT = []
 for file in files:
     f = uproot.open('output2/' + file[1])
     br = f['events'].arrays()
-    HT.append([br['ak4_HT'], [weights[file[0]]]* len(br['ak4_HT']),file[0]])
+    HT.append([br['ak4_HT'], [weights[file[0]] / len(br['ak4_HT'])]* len(br['ak4_HT']),file[0]])
  
-print(HT)
 plt.hist([row[0] for row in HT], weights= [row[1] for row in HT], bins= 100,stacked=True,label=[row[2] for row in HT],range=(0,3000))
 plt.xlabel("HT [GeV]")
+plt.yscale('log')
 plt.legend()
 plt.show()
