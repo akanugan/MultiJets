@@ -4,6 +4,8 @@ import ROOT
 from ROOT import TH1F, TH1D, TH2D, TFile, TLorentzVector, TChain, TProfile, TTree
 from array import array
 import argparse
+import numpy as np
+#import h5py
 
 def tri_mds(trip):
     den=((trip[0]+trip[1]+trip[2]).M()**2)+(trip[0].M()**2)+(trip[1].M()**2)+(trip[2].M()**2)
@@ -153,16 +155,22 @@ sys.argv = oldargv
 parser = argparse.ArgumentParser()
 parser.add_argument("inFile", help="Location of input file/files")
 parser.add_argument("isdata", help="data or MC (1 or 0)")
-parser.add_argument("file_num", help="which file to run on")
+#parser.add_argument("file_num", help="which file to run on")
 args = parser.parse_args()
 
 file_list = [line.strip('\n') for line in open(args.inFile).readlines()]
 # Ntuples loc
 ntup_wjets_loc = '/eos/uscms/store/user/abhijith/WJetsToQQ/WJetsToQQ_HT-800toInf/'
+ntup_loc = '/eos/uscms/store/group/lpctrig/abhijith/mc_samples2017/'
 
 
-InFile = ntup_wjets_loc + file_list[int(args.file_num)]
+#InFile = ntup_wjets_loc + file_list[int(args.file_num)]
+#InFile = ntup_loc + file_list[int(args.file_num)]
 #InFile = 'WJetsToQQ_HT-800toInf_1.root'
+rd = "root://cmseos.fnal.gov//"
+redirector = 'root://cmseos.fnal.gov//store/group/lpctrig/abhijith/mc_samples2017/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1/200824_223503/0000/slimmed_ntuple_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1_1-2.root'
+InFile = rd + 'store/user/abhijith/WJetsToQQ/WJetsToQQ_HT-800toInf/' + file_list[0]
+#InFile = infile
 
 weight=1.0
 if(args.isdata==0):
@@ -171,9 +179,11 @@ if(args.isdata==0):
             weight = p[1]
 
 # OutFile = 'output2/trip2_'+InFile.split('/')[-1]
-OutFile = 'output2/trip4_'+InFile.split('/')[-1]
+#OutFile = 'output2/trip4_'+InFile.split('/')[-1]
+OutFile = 'slimmedNtup_'+InFile.split('/')[-1]
 
-print(InFile,OutFile,args.file_num)
+#print(InFile,OutFile,args.file_num)
+print(InFile,OutFile)
 
 # load FWLite C++ libraries
 # ROOT.gSystem.Load("libFWCoreFWLite.so");
@@ -183,10 +193,12 @@ print(InFile,OutFile,args.file_num)
 # load FWlite python libraries
 # from DataFormats.FWLite import Handle, Events
 data_chain=TChain("slimmedntuplizer/events")
-data_files = glob.glob(InFile)
+#data_files = glob.glob(InFile)
+data_files = InFile
 #data_files = 'WJetsToQQ_HT-800toInf_1.root'
-for i in data_files:
-    data_chain.Add(i)
+# for i in data_files:
+#     data_chain.Add(i)
+data_chain.Add(InFile)
 
 data_chain.SetBranchStatus("*", 0)
 ####TODO
@@ -253,6 +265,7 @@ for i in range(len(list_of_tbranches)):
     tree.Branch(list_of_tbranches[i],data_tarr[i],list_of_tbranches[i]+"[trip_num]/F")
 
 #done booking the tree
+
 
 count=0
 for event in data_chain:
@@ -489,11 +502,7 @@ for event in data_chain:
         data_tarr[55][i] = ptrip_qgl[i]
         data_tarr[56][i] = ptrip_qgt[i]
 
-
-
     tree.Fill()
-
-
 
 outfile = TFile(OutFile, "recreate")
 tree.Write()

@@ -1,0 +1,3 @@
+[submodule "unsupervised-search"]
+	path = unsupervised-search
+	url = https://github.com/akanugan/unsupervised-search.git
