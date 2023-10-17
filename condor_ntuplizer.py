@@ -12,6 +12,7 @@ def submit_condor_jobs(input_file, nfPerJob, isdata=0):
     exe_ana = "make_flat_jettuple_ak4.py"
     dataset_ana = "MC_2016"
     files_to_transfer = f"{input_file},{exe_ana}"
+    base_output_directory = "/uscms/home/akanugan/nobackup/MultiJets/condor_out"
 
  
     with open(input_file, 'r') as file:
@@ -46,6 +47,7 @@ def submit_condor_jobs(input_file, nfPerJob, isdata=0):
             #Submit each Condor job
             #subprocess.Popen(["condor_submit", f"{job_name}.submit"])
         os.system(f"{condor_submit_path} {job_name}.submit")       
+        
 
 if __name__ == "__main__":
-    submit_condor_jobs("Wjets.txt", 1, isdata=0)
+    submit_condor_jobs("QCD_test.txt", 1, isdata=0)
