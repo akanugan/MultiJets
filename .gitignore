@@ -1,1 +1,9 @@
+.gitignore
 *.root
+FileList*
+*.condor
+*.stdout
+*.stderr
+*.submit
+*.h5
+*txt~

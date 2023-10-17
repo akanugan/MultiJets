@@ -169,7 +169,9 @@ ntup_loc = '/eos/uscms/store/group/lpctrig/abhijith/mc_samples2017/'
 #InFile = 'WJetsToQQ_HT-800toInf_1.root'
 rd = "root://cmseos.fnal.gov//"
 redirector = 'root://cmseos.fnal.gov//store/group/lpctrig/abhijith/mc_samples2017/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1/200824_223503/0000/slimmed_ntuple_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1_1-2.root'
-InFile = rd + 'store/user/abhijith/WJetsToQQ/WJetsToQQ_HT-800toInf/' + file_list[0]
+InFile =  file_list[0]
+# remove /eos/uscms/
+InFile = rd + InFile.replace('/eos/uscms/','')
 #InFile = infile
 
 weight=1.0
