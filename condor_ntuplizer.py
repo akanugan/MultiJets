@@ -3,6 +3,7 @@
 import os
 import subprocess
 import shutil
+import argparse
 print(os.environ['PATH'])
 
 def submit_condor_jobs(input_file, nfPerJob, isdata=0):
@@ -19,15 +20,17 @@ def submit_condor_jobs(input_file, nfPerJob, isdata=0):
         lines = file.readlines()
     fname = [line.strip() for line in lines]
 
+    input_filename = os.path.basename(input_file)
+
     # Split the input files into smaller lists for each job
     jobid = 0
     for i in range(0, len(fname), nfPerJob):
-        output_filename = f"FileList_{input_file[:-4]}_job{jobid}.txt"  
+        output_filename = f"FileList_{input_filename[:-4]}_job{jobid}.txt"  
         with open(output_filename, 'w') as outf:
             for j in range(nfPerJob):
                 if i + j < len(fname):
                     outf.write(fname[i + j] + "\n")
-        job_name = f"{input_file[:-4]}_job{jobid}"  # Unique job name
+        job_name = f"{input_filename[:-4]}_job{jobid}"  # Unique job name
         jobid += 1
 
         # Create Condor job submission file for each job
@@ -50,4 +53,10 @@ def submit_condor_jobs(input_file, nfPerJob, isdata=0):
         
 
 if __name__ == "__main__":
-    submit_condor_jobs("QCD_test.txt", 1, isdata=0)
+    parser = argparse.ArgumentParser(description="Submit Condor jobs.")
+    parser.add_argument("-i","--input_file", type=str, help="Path to the input file.")
+    parser.add_argument("-n","--nfPerJob", type=int, default=1, help="Number of files per job.")
+    parser.add_argument("--isdata", type=int, default=0, help="Flag indicating if it's data (default is 0).")
+    args = parser.parse_args()
+
+    submit_condor_jobs(args.input_file, args.nfPerJob, args.isdata)
