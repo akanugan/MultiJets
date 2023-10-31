@@ -266,16 +266,28 @@ for i in range(len(list_of_jbranches)):
 for i in range(len(list_of_tbranches)):
     tree.Branch(list_of_tbranches[i],data_tarr[i],list_of_tbranches[i]+"[trip_num]/F")
 
+# cutFlowValue = array("i",[0])
+# tree.Branch("cut_flow_diagram",cutFlowValue,"cut_flow_diagram/I")
+
+
 #done booking the tree
 
-
+cut_flow_hist = TH1F("cut_flow_hist","cut_flow_hist",5,0,4)
 count=0
+# cut1=0
+# cut2=0
+# cut3=0
+# cut4=0
 for event in data_chain:
     count+=1
+    cut_flow_hist.Fill(0)
     if(count%1000==0 or count == num_events): print("wrote event :",count,";",100*count/num_events,"%  done ")
     if(len(event.fj_ak4_jetid)<6): continue
+    cut_flow_hist.Fill(1)
     if(sum(event.fj_ak4_jetid[:6])<6): continue
+    cut_flow_hist.Fill(2)
     if(event.fj_ak4_HT<550): continue
+    cut_flow_hist.Fill(3)
     gj_index = []
     gj_qgl = []
     for i, qgl in enumerate(event.fj_ak4_qgl):
@@ -283,6 +295,7 @@ for event in data_chain:
             gj_index.append(i)
             gj_qgl.append(qgl)
     if (len(gj_index) < 6): continue
+    cut_flow_hist.Fill(4)
     n=min(len(event.fj_ak4_pt),30)
     # print(gj_index,gj_qgl)
 
@@ -506,7 +519,26 @@ for event in data_chain:
 
     tree.Fill()
 
+
+# tree.SetBranchStatus("cut_flow_diagram",1)
+# for i in range(count):
+#     cutFlowValue[0] = 0
+#     tree.GetBranch("cut_flow_diagram").Fill()
+# for i in range(cut1):
+#     cutFlowValue[0] = 1
+#     tree.GetBranch("cut_flow_diagram").Fill()
+# for i in range(cut2):
+#     cutFlowValue[0] = 2
+#     tree.GetBranch("cut_flow_diagram").Fill()
+# for i in range(cut3):
+#     cutFlowValue[0] = 3
+#     tree.GetBranch("cut_flow_diagram").Fill()
+# for i in range(cut4):
+#     cutFlowValue[0] = 4
+#     tree.GetBranch("cut_flow_diagram").Fill()
 outfile = TFile(OutFile, "recreate")
+cut_flow_hist.Write()
 tree.Write()
 outfile.Write()
 outfile.Close()
+
