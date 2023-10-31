@@ -35,7 +35,9 @@ for file in files:
         continue
     f = uproot.open('../slimmed_ntuples/' + file)
     br = f['events'].arrays()
-    HT.append([br['ak4_HT'], [weights[name] / len(br['ak4_HT'])]* len(br['ak4_HT']),name])
+    events = f['cut_flow_hist'].values()[0]
+    #HT.append([br['ak4_HT'], [weights[name] / len(br['ak4_HT'])]* len(br['ak4_HT']),name])
+    HT.append([br['ak4_HT'], [weights[name] / events]* len(br['ak4_HT']),name])
 
 print("Plotting...")
 plt.hist([row[0] for row in HT], weights= [row[1] for row in HT], bins= 100,stacked=True,label=[row[2] for row in HT],range=(0,3000))
