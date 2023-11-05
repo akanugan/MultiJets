@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import uproot
 import awkward as awk
 
+#x-secs times filter eff in picobarns of QCD HT bins
 weights = {'QCD_HT300to500': 5.840092228107049,
             'QCD_HT500to700': 0.5645990685276228 ,
             'QCD_HT700to1000': 0.15253309779537536 ,
@@ -13,6 +14,17 @@ weights = {'QCD_HT300to500': 5.840092228107049,
             'QCD_HT1500to2000': 0.010317626274751761 ,
             'QCD_HT2000toInf': 0.004261168431292373
             }
+
+weights = {'QCD_HT300to500': 0,
+            'QCD_HT500to700': 29370,
+            'QCD_HT700to1000': 6524,
+            'QCD_HT1000to1500': 1064,
+            'QCD_HT1500to2000': 121.5,
+            'QCD_HT2000toInf': 25.42
+            }
+
+ 
+
 def QCD_sample_name(name):
     for key in weights.keys():
         if key in name:
@@ -42,6 +54,8 @@ for file in files:
 print("Plotting...")
 plt.hist([row[0] for row in HT], weights= [row[1] for row in HT], bins= 100,stacked=True,label=[row[2] for row in HT],range=(0,3000))
 plt.xlabel("HT [GeV]")
+#y axis is in pico-barns, need to multiply by luminosity to get num events
+#lum in inverse pico-barns
 plt.yscale('log')
 plt.legend()
 plt.show()
