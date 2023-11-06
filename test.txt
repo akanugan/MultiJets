@@ -1,1 +1,1 @@
-test/QCD.root
+slimmed_ntuples/added.root
