@@ -64,7 +64,7 @@ void Analyzer::EventLoop(const char *data,const char *inputFileList) {
     //nEvtSurv++;
     h_cutflow->Fill("NEvtsNoWtLeft",1);
     if (ak4_HT > 550) {
-            hist_region_1->Fill(jtrip_mass[0]);
+            hist_region_1->Fill(jtrip_mass[1],1);
         }
   } // loop over entries
   //cout<<"No. of entries survived: "<<nEvtSurv<<endl;
