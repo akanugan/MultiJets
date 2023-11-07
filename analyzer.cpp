@@ -1,4 +1,3 @@
-
 //made a class Sample to hold all a tree
 //and all of the cross section related things at 
 //the same time. On construction uses the x_section 
@@ -31,10 +30,7 @@ class QCDSample {
         }
 };
 
-
-
 void analyzer(){
-
     //x-secs times filter eff in picobarns of QCD HT bins
     //need to get 300to500 bin x_sec at some point
     std::map<std::string,float> x_sections;
@@ -49,7 +45,7 @@ void analyzer(){
     //Get all files in this directory
     //at some point can fix this to have different samples in different file lists
     std::vector<std::string> file_names;
-    std::string path = "slimmed_ntuples/";
+    std::string path = "full_ntuples/";
     for (const auto & entry : std::filesystem::directory_iterator(path)){
             file_names.push_back(entry.path());
     }
@@ -71,33 +67,21 @@ void analyzer(){
     TFile *output_hists = new TFile("analyzed_histograms.root","recreate");
 
     std::map<std::string,TH1*> histograms;
-    histograms["mass_hists_region1"] =  new TH1D("mass_hists_region1", "Region 1", 102*2,100,610);
+    histograms["mass_unweighted"] =  new TH1F("mass_unweighted", "Unweighted Invariant Mass of Triplets, JEC included", 70,0,2500);
+    histograms["mass_weighted"] =  new TH1F("mass_weighted", "Weighted Invariant Mass of Triplets, JEC included", 70,0,2500);
     
     for (auto current_sample = trees.begin(); current_sample != trees.end(); ++current_sample){
         std::cout << "Processing sample: " << current_sample->name << std::endl;
-        current_sample->tree->SetBranchStatus("*",0);
         
 
 
 
-        float jtrip_mass = 0;
+        Float_t jtrip_mass[20];
         float Event = 0;
         
-        // current_sample->tree->SetBranchAddress("jtrip_mass",&jtrip_mass);
-        // current_sample->tree->SetBranchStatus("jtrip_mass",1);
+        current_sample->tree->SetBranchAddress("jtrip_mass",&jtrip_mass);
         // current_sample->tree->SetBranchAddress("Event",&Event);
-        // current_sample->tree->SetBranchStatus("Event",1);
 
-        
-        // TBranch *Bjtrip_mass = current_sample->tree->GetBranch("jtrip_mass");
-        // Bjtrip_mass->SetAddress(&jtrip_mass);
-        // Bjtrip_mass->SetAutoDelete(kTRUE);
-        // Bjtrip_mass->SetStatus(1);
-
-        TBranch *BEvent = current_sample->tree->GetBranch("Event");
-        BEvent->SetAddress(&Event);
-        BEvent->SetAutoDelete(kTRUE);
-        BEvent->SetStatus(1);
         
         const Int_t nentries = (Int_t)current_sample->tree->GetEntries();
         std::cout << "Events in sample:" << nentries << std::endl;
@@ -105,14 +89,14 @@ void analyzer(){
         for (int i=0; i < nentries; i++){
 
             current_sample->tree->GetEntry(i);
-            
-            if (i %100 == 0){
-                std::cout << "nentries: " << nentries << std::endl;
-                //std::cout << "jtrip_mass " << i << ": " << jtrip_mass << std::endl;
-                std::cout << "Event " << i << ": " << Event << std::endl;
+            for (int i = 0; i < 20; i++){
+                histograms["mass_weighted"]->Fill(jtrip_mass[i], current_sample->weight);
+                histograms["mass_unweighted"]->Fill(jtrip_mass[i]);
             }
+            
         }
 
+        current_sample->tree->ResetBranchAddresses();
 
 
     }
