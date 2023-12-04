@@ -5,7 +5,9 @@ from ROOT import TH1F, TH1D, TH2D, TFile, TLorentzVector, TChain, TProfile, TTre
 from array import array
 import argparse
 import numpy as np
-#import h5py
+import h5py
+
+hdf5_file = h5py.File('out.h5', 'w')
 
 def tri_mds(trip):
     den=((trip[0]+trip[1]+trip[2]).M()**2)+(trip[0].M()**2)+(trip[1].M()**2)+(trip[2].M()**2)
@@ -519,6 +521,23 @@ for event in data_chain:
 
     tree.Fill()
 
+# Create groups for different datasets
+s_branches_group = hdf5_file.create_group('s_branches')
+j_branches_group = hdf5_file.create_group('j_branches')
+t_branches_group = hdf5_file.create_group('t_branches')
+
+# Store data in HDF5 file
+for i, branch in enumerate(list_of_sbranches):
+    s_branches_group.create_dataset(branch, data=data_sarr[i])
+
+for i, branch in enumerate(list_of_jbranches):
+    j_branches_group.create_dataset(branch, data=data_jarr[i])
+
+for i, branch in enumerate(list_of_tbranches):
+    t_branches_group.create_dataset(branch, data=data_tarr[i])
+
+# Close the HDF5 file
+hdf5_file.close()
 
 # tree.SetBranchStatus("cut_flow_diagram",1)
 # for i in range(count):
