@@ -35,6 +35,7 @@ def QCD_sample_name(name):
     return None
 
 
+
 oldargv = sys.argv[:]
 sys.argv = [ '-b-' ]
 sys.argv = oldargv
@@ -55,9 +56,20 @@ histograms = {
                 'inv_mass_reg1' : {},
                 'inv_mass_reg2' : {},
                 'inv_mass_reg3' : {},
+                'inv_mass_reg4' : {}
 }
 
 #bins = None
+
+r22 = None
+r33 = None
+r44 = None
+r23 = None
+r32 = None
+r24 = None
+r42 = None
+r34 = None
+r43 = None
 
 for file in files:
     
@@ -81,11 +93,36 @@ for file in files:
     m1 = f['hist_region_1'].to_hist()
     m2 = f['hist_region_2'].to_hist()
     m3 = f['hist_region_3'].to_hist()
+    m4 = f['hist_region_4'].to_hist()
+
+    if 'sig' in file:
+        if (r22 == None):
+            r22 = f['masym_region_2'].to_hist()
+            r33 = f['delta_region_3'].to_hist()
+            r44 = f['delta phi - pi_region_4'].to_hist()
+            r23 = f['region_2_3'].to_hist()
+            r32 = f['region_3_2'].to_hist()
+            r24 = f['region_2_4'].to_hist()
+            r42 = f['region_4_2'].to_hist()
+            r34 = f['region_3_4'].to_hist()
+            r43 = f['region_4_3'].to_hist()
+        else:
+            r22 = r22 + f['masym_region_2'].to_hist()
+            r33 = r33 + f['delta_region_3'].to_hist()
+            r44 = r44 + f['delta phi - pi_region_4'].to_hist()
+            r23 = r23 + f['region_2_3'].to_hist()
+            r32 = r32 + f['region_3_2'].to_hist()
+            r24 = r24 + f['region_2_4'].to_hist()
+            r42 = r42 + f['region_4_2'].to_hist()
+            r34 = r34 + f['region_3_4'].to_hist()
+            r43 = r43 + f['region_4_3'].to_hist()
+    
 
     histograms['HT'][name] = ht_hist*(weight)
     histograms['inv_mass_reg1'][name] = m1*(weight)
     histograms['inv_mass_reg2'][name] = m2*(weight)
     histograms['inv_mass_reg3'][name] = m3*(weight)
+    histograms['inv_mass_reg4'][name] = m4*(weight)
     
 
 
@@ -114,80 +151,71 @@ plt.legend()
 plt.savefig("plots/HT.pdf", format="pdf", bbox_inches="tight")
 plt.clf()
 
-inv_mass_hist = sum(histograms['inv_mass_reg1'].values())
-inv_mass_hist.plot()
 
-plt.xlabel("Invariant Mass, all pairs [GeV]")
-#y axis is in pico-barns, need to multiply by luminosity to get num events
-#lum in inverse pico-barns
-plt.savefig("plots/inv_mass_reg1.pdf", format="pdf", bbox_inches="tight")
-plt.clf()
+def plot_inv_mass_region(histograms,region,label):
+    inv_mass_hist = sum(histograms[region].values())
+    inv_mass_hist.plot()
 
-inv_mass_hist = sum(histograms['inv_mass_reg2'].values())
-inv_mass_hist.plot()
+    plt.xlabel(label)
+    #y axis is in pico-barns, need to multiply by luminosity to get num events
+    #lum in inverse pico-barns
+    plt.savefig("plots/" + region + ".pdf", format="pdf", bbox_inches="tight")
+    plt.clf()
 
-plt.xlabel("Invariant Mas, lowest asymmetry pair kept [GeV]")
-#y axis is in pico-barns, need to multiply by luminosity to get num events
-#lum in inverse pico-barns
-plt.savefig("plots/inv_mass_reg2.pdf", format="pdf", bbox_inches="tight")
-plt.clf()
-
-inv_mass_hist = sum(histograms['inv_mass_reg3'].values())
-inv_mass_hist.plot()
-
-plt.xlabel("Invariant Mass [GeV]")
-#y axis is in pico-barns, need to multiply by luminosity to get num events
-#lum in inverse pico-barns
-plt.savefig("plots/inv_mass_reg3.pdf", format="pdf", bbox_inches="tight")
-plt.clf()
-
-qcd_hists = {k: histograms['inv_mass_reg1'][k] for k in histograms['inv_mass_reg1'].keys() - (histograms['inv_mass_reg1'].keys() - x_sections.keys())}
-sig_hists = {k: histograms['inv_mass_reg1'][k] for k in histograms['inv_mass_reg1'].keys() - x_sections.keys()}
+    qcd_hists = {k: histograms[region][k] for k in histograms[region].keys() - (histograms[region].keys() - x_sections.keys())}
+    sig_hists = {k: histograms[region][k] for k in histograms[region].keys() - x_sections.keys()}
 
 
-stack_hist = sum(qcd_hists.values())
-stack_hist.plot()
+    stack_hist = sum(qcd_hists.values())
+    stack_hist.plot()
 
-for name in sig_hists.keys():
-    sig_hists[name].plot(label=name)
+    for name in sig_hists.keys():
+        sig_hists[name].plot(label=name)
 
-plt.xlabel("Invariant Mass [GeV]")
-#y axis is in pico-barns, need to multiply by luminosity to get num events
-#lum in inverse pico-barns
-plt.legend()
-plt.savefig("plots/inv_mass_reg1_truth.pdf", format="pdf", bbox_inches="tight")
-plt.clf()
-
-qcd_hists = {k: histograms['inv_mass_reg2'][k] for k in histograms['inv_mass_reg2'].keys() - (histograms['inv_mass_reg2'].keys() - x_sections.keys())}
-sig_hists = {k: histograms['inv_mass_reg2'][k] for k in histograms['inv_mass_reg2'].keys() - x_sections.keys()}
+    plt.xlabel(label)
+    plt.legend()
+    plt.savefig("plots/"+region +"_truth.pdf", format="pdf", bbox_inches="tight")
+    plt.clf()
 
 
-stack_hist = sum(qcd_hists.values())
-stack_hist.plot()
+plot_inv_mass_region(histograms,"inv_mass_reg1","Invariant Mass, all pairs [GeV]")
+plot_inv_mass_region(histograms,"inv_mass_reg2","Invariant Mass, Min(masym) [GeV]")
+plot_inv_mass_region(histograms,"inv_mass_reg3","Invariant Mass, Min(delta) [GeV]")
+plot_inv_mass_region(histograms,"inv_mass_reg4","Invariant Mass, Min(delta phi - pi) [GeV]")
 
-for name in sig_hists.keys():
-    sig_hists[name].plot(label=name)
+fig, axs = plt.subplots(3, 3, sharex=False, sharey=False,figsize=(12, 12))
 
-plt.xlabel("Invariant Mass [GeV]")
-#y axis is in pico-barns, need to multiply by luminosity to get num events
-#lum in inverse pico-barns
-plt.legend()
-plt.savefig("plots/inv_mass_reg2_truth.pdf", format="pdf", bbox_inches="tight")
-plt.clf()
+x, y = r22.to_numpy()
+axs[0, 0].plot(fix_bins(y), x)
+axs[0,0].set_yticklabels([])
+x, y = r33.to_numpy()
+axs[1, 1].plot(fix_bins(y), x)
+axs[1, 1].set_yticklabels([])
+x, y = r44.to_numpy()
+axs[2, 2].plot(fix_bins(y), x)
+axs[2, 2].set_yticklabels([])
+w, x, y = r23.to_numpy()
+axs[0, 1].pcolormesh(x, y, w.T,cmap="BuPu")
+w, x, y = r24.to_numpy()
+axs[0, 2].pcolormesh(x, y, w.T,cmap="GnBu")
+w, x, y = r32.to_numpy()
+axs[1, 0].pcolormesh(x, y, w.T,cmap="YlGn")
+w, x, y = r34.to_numpy()
+axs[1, 2].pcolormesh(x, y, w.T,cmap="PuBuGn")
+w, x, y = r42.to_numpy()
+axs[2, 0].pcolormesh(x, y, w.T,cmap="OrRd")
+w, x, y = r43.to_numpy()
+axs[2, 1].pcolormesh(x, y, w.T,cmap="Blues")
 
-qcd_hists = {k: histograms['inv_mass_reg3'][k] for k in histograms['inv_mass_reg3'].keys() - (histograms['inv_mass_reg3'].keys() - x_sections.keys())}
-sig_hists = {k: histograms['inv_mass_reg3'][k] for k in histograms['inv_mass_reg3'].keys() - x_sections.keys()}
+axs[0,0].set_title("masym")
+axs[0,1].set_title("delta")
+axs[0,2].set_title("delta phi - pi")
 
+axs[0,0].set_ylabel("Min(masym)",rotation=0,size='large')
+axs[0,0].yaxis.set_label_coords(-0.24,0.5)
+axs[1,0].set_ylabel("Min(delta)",rotation=0,size='large')
+axs[1,0].yaxis.set_label_coords(-0.24,0.5)
+axs[2,0].set_ylabel("Min(delta phi - pi)",rotation=0,size='large')
+axs[2,0].yaxis.set_label_coords(-0.26,0.5)
 
-stack_hist = sum(qcd_hists.values())
-stack_hist.plot()
-
-for name in sig_hists.keys():
-    sig_hists[name].plot(label=name)
-
-plt.xlabel("Invariant Mass [GeV]")
-#y axis is in pico-barns, need to multiply by luminosity to get num events
-#lum in inverse pico-barns
-plt.legend()
-plt.savefig("plots/inv_mass_reg3_truth.pdf", format="pdf", bbox_inches="tight")
-plt.clf()
+plt.savefig("plots/variables.pdf", format="pdf")

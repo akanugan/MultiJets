@@ -32,12 +32,23 @@ void print(Long64_t);
 bool isMC=true;
 double deepCSVvalue = 0;
 
+struct region_variable{
+    string name;
+    double low;
+    double high;
+};
+
 TH1F *h_cutflow;
 TH1F *old_cutflow;
 TH1D *hist_region_1;
 TH1D *hist_region_2;
 TH1D *hist_region_3;
+TH1D *hist_region_4;
 TH1D *ht_plot;
+
+vector<region_variable> variables;
+vector<vector<TH2D*>> cross_variables;
+vector<vector<TH1D*>> hist_variables;
 
 
 // TH1D *h_b_Run;  
@@ -85,27 +96,27 @@ TH1D *ht_plot;
 // TH1D *h_b_trip_jind; 
 // TH1D *h_b_trip_csv;  
 // TH1D *h_b_trip_m63;  
-TH1D *h_b_jtrip_mass;
-TH1D *h_b_jtrip_vpt; 
-TH1D *h_b_jtrip_spt; 
-TH1D *h_b_jtrip_delta;
-TH1D *h_b_jtrip_eta; 
-TH1D *h_b_jtrip_phi; 
-TH1D *h_b_jtrip_masym;
-TH1D *h_b_jtrip_deta;
-TH1D *h_b_jtrip_mds; 
-TH1D *h_b_jtrip_dlow;
-TH1D *h_b_jtrip_dmid;
-TH1D *h_b_jtrip_dhigh;
-TH1D *h_b_jtrip_match;
-TH1D *h_b_jtrip_tpind;
-TH1D *h_b_jtrip_jind;
-TH1D *h_b_jtrip_csv; 
-TH1D *h_b_jtrip_m63; 
-TH1D *h_b_trip_qgl;  
-TH1D *h_b_trip_qgt;  
-TH1D *h_b_jtrip_qgl; 
-TH1D *h_b_jtrip_qgt; 
+// TH1D *h_b_jtrip_mass;
+// TH1D *h_b_jtrip_vpt; 
+// TH1D *h_b_jtrip_spt; 
+// TH1D *h_b_jtrip_delta;
+// TH1D *h_b_jtrip_eta; 
+// TH1D *h_b_jtrip_phi; 
+// TH1D *h_b_jtrip_masym;
+// TH1D *h_b_jtrip_deta;
+// TH1D *h_b_jtrip_mds; 
+// TH1D *h_b_jtrip_dlow;
+// TH1D *h_b_jtrip_dmid;
+// TH1D *h_b_jtrip_dhigh;
+// TH1D *h_b_jtrip_match;
+// TH1D *h_b_jtrip_tpind;
+// TH1D *h_b_jtrip_jind;
+// TH1D *h_b_jtrip_csv; 
+// TH1D *h_b_jtrip_m63; 
+// TH1D *h_b_trip_qgl;  
+// TH1D *h_b_trip_qgt;  
+// TH1D *h_b_jtrip_qgl; 
+// TH1D *h_b_jtrip_qgt; 
 // TH1D *h_b_ptrip_mass;
 // TH1D *h_b_ptrip_vpt; 
 // TH1D *h_b_ptrip_spt; 
@@ -146,11 +157,57 @@ void Analyzer::BookHistogram(const char *outFileName) {
 
 
     h_cutflow = new TH1F("CutFlow","cut flow",25,0,25);
-    hist_region_1 = new TH1D("hist_region_1", "Region 1 Histogram", 102 * 2, 300, 1200);
-    hist_region_2 = new TH1D("hist_region_2", "Region 2 Histogram", 90 * 2, 300, 1200);
-    hist_region_3 = new TH1D("hist_region_3", "Region 3 Histogram", 99 * 2, 300, 1200);
+    hist_region_1 = new TH1D("hist_region_1", "Region 1 Histogram", 50, 300, 1750);
+    hist_region_2 = new TH1D("hist_region_2", "Region 2 Histogram", 50, 300, 1750);
+    hist_region_3 = new TH1D("hist_region_3", "Region 3 Histogram", 50, 300, 1750);
+    hist_region_4 = new TH1D("hist_region_4", "Region 4 Histogram", 50, 300, 1750);
     ht_plot = new TH1D("ht_plot", "HT", 99 * 2, 0, 2500);
-    
+
+    region_variable masym_var;
+    masym_var.name = "masym";
+    masym_var.low = 0;
+    masym_var.high = 1;
+    variables.push_back(masym_var);
+
+    region_variable delta_var;
+    delta_var.name = "delta";
+    delta_var.low = -900;
+    delta_var.high = 900;
+    variables.push_back(delta_var);
+
+    region_variable delta_phi_var;
+    delta_phi_var.name = "delta phi - pi";
+    delta_phi_var.low = 0;
+    delta_phi_var.high = 1.5;
+    variables.push_back(delta_phi_var);
+
+    int bin_num = 50;
+    for(int i =0; i < variables.size(); i++){
+      vector<TH1D*> row;
+      for(int j = 0; j < variables.size() + 1; j++){
+          string name = variables.at(i).name + string("_region_") + to_string(j + 1);
+          string title = variables.at(i).name + string(" Region ") + to_string(j + 1);
+          row.push_back(new TH1D(name.c_str(),title.c_str(),bin_num,variables.at(i).low,variables.at(i).high));
+      }
+      hist_variables.push_back(row);
+    }
+
+    for(int i = 0; i < variables.size(); i++){
+      vector<TH2D*> row;
+      for(int j = 0; j < variables.size(); j++){
+        if(i == j){
+          row.push_back(new TH2D());
+          continue;
+        }
+        string name = string("region_") + to_string(i + 2) + string("_") + to_string(j + 2);
+        string title = variables.at(i).name + string(" vs ") + variables.at(j).name;
+        row.push_back(new TH2D(name.c_str(), title.c_str(), bin_num, variables.at(i).low, variables.at(i).high,
+                                bin_num, variables.at(j).low, variables.at(j).high));
+
+      }
+      cross_variables.push_back(row);
+    }
+
     // h_b_Run  = new TH1D("h_b_Run", "Run",50,0,100); 
     // h_b_Lumi = new TH1D("h_b_Lumi", "Lumi",50,0,100);   
     // h_b_Event = new TH1D("h_b_Event", "Event",50,0,100);   
@@ -199,25 +256,25 @@ void Analyzer::BookHistogram(const char *outFileName) {
     // h_b_trip_qgl = new TH1D("h_b_trip_qgl", "trip_qgl", 25, 0, 1);  
     // h_b_trip_qgt = new TH1D("h_b_trip_qgt", "trip_qgt", 25, 0, 1); 
 
-    h_b_jtrip_mass = new TH1D("h_b_jtrip_mass", "jtrip_mass", 25, 0, 3000); 
-    h_b_jtrip_vpt = new TH1D("h_b_jtrip_vpt", "jtrip_vpt", 25, 0, 500);  
-    h_b_jtrip_spt = new TH1D("h_b_jtrip_spt", "jtrip_spt", 25, 0, 100);  
-    h_b_jtrip_delta = new TH1D("h_b_jtrip_delta", "jtrip_delta", 25, -2000, 2000);
-    h_b_jtrip_eta = new TH1D("h_b_jtrip_eta", "jtrip_eta", 25, -7, 7);  
-    h_b_jtrip_phi = new TH1D("h_b_jtrip_phi", "jtrip_phi", 25, -3.5, 3.5);  
-    h_b_jtrip_masym = new TH1D("h_b_jtrip_masym", "jtrip_masym", 25, 0, 1),
-    h_b_jtrip_deta = new TH1D("h_b_jtrip_deta", "jtrip_deta", 25, 0, 100); 
-    h_b_jtrip_mds = new TH1D("h_b_jtrip_mds", "jtrip_mds", 25, 0, 1);  
-    h_b_jtrip_dlow = new TH1D("h_b_jtrip_dlow", "jtrip_dlow", 25, 0, 1); 
-    h_b_jtrip_dmid = new TH1D("h_b_jtrip_dmid", "jtrip_dmid", 25, 0, 1); 
-    h_b_jtrip_dhigh = new TH1D("h_b_jtrip_dhigh", "jtrip_dhigh", 25, 0, 1);
-    h_b_jtrip_match = new TH1D("h_b_jtrip_match", "jtrip_match", 25, 0, 100);
-    h_b_jtrip_tpind = new TH1D("h_b_jtrip_tpind", "tjrip_tpind", 25, 0, 1000);
-    h_b_jtrip_jind = new TH1D("h_b_jtrip_jind", "jtrip_jind", 25, 0, 1000); 
-    h_b_jtrip_csv = new TH1D("h_b_jtrip_csv", "jtrip_csv", 25, 0, 1);  
-    h_b_jtrip_m63 = new TH1D("h_b_jtrip_m63", "jtrip_m63", 25, 0, 1);  
-    h_b_jtrip_qgl = new TH1D("h_b_jtrip_qgl", "jtrip_qgl", 25, 0, 1);  
-    h_b_jtrip_qgt = new TH1D("h_b_jtrip_qgt", "jtrip_qgt", 25, 0, 1);    
+    // h_b_jtrip_mass = new TH1D("h_b_jtrip_mass", "jtrip_mass", 25, 0, 3000); 
+    // h_b_jtrip_vpt = new TH1D("h_b_jtrip_vpt", "jtrip_vpt", 25, 0, 500);  
+    // h_b_jtrip_spt = new TH1D("h_b_jtrip_spt", "jtrip_spt", 25, 0, 100);  
+    // h_b_jtrip_delta = new TH1D("h_b_jtrip_delta", "jtrip_delta", 25, -2000, 2000);
+    // h_b_jtrip_eta = new TH1D("h_b_jtrip_eta", "jtrip_eta", 25, -7, 7);  
+    // h_b_jtrip_phi = new TH1D("h_b_jtrip_phi", "jtrip_phi", 25, -3.5, 3.5);  
+    // h_b_jtrip_masym = new TH1D("h_b_jtrip_masym", "jtrip_masym", 25, 0, 1),
+    // h_b_jtrip_deta = new TH1D("h_b_jtrip_deta", "jtrip_deta", 25, 0, 100); 
+    // h_b_jtrip_mds = new TH1D("h_b_jtrip_mds", "jtrip_mds", 25, 0, 1);  
+    // h_b_jtrip_dlow = new TH1D("h_b_jtrip_dlow", "jtrip_dlow", 25, 0, 1); 
+    // h_b_jtrip_dmid = new TH1D("h_b_jtrip_dmid", "jtrip_dmid", 25, 0, 1); 
+    // h_b_jtrip_dhigh = new TH1D("h_b_jtrip_dhigh", "jtrip_dhigh", 25, 0, 1);
+    // h_b_jtrip_match = new TH1D("h_b_jtrip_match", "jtrip_match", 25, 0, 100);
+    // h_b_jtrip_tpind = new TH1D("h_b_jtrip_tpind", "tjrip_tpind", 25, 0, 1000);
+    // h_b_jtrip_jind = new TH1D("h_b_jtrip_jind", "jtrip_jind", 25, 0, 1000); 
+    // h_b_jtrip_csv = new TH1D("h_b_jtrip_csv", "jtrip_csv", 25, 0, 1);  
+    // h_b_jtrip_m63 = new TH1D("h_b_jtrip_m63", "jtrip_m63", 25, 0, 1);  
+    // h_b_jtrip_qgl = new TH1D("h_b_jtrip_qgl", "jtrip_qgl", 25, 0, 1);  
+    // h_b_jtrip_qgt = new TH1D("h_b_jtrip_qgt", "jtrip_qgt", 25, 0, 1);    
 
     // h_b_ptrip_mass = new TH1D("h_b_ptrip_mass", "ptrip_mass", 25, 0, 3000); 
     // h_b_ptrip_vpt = new TH1D("h_b_ptrip_vpt", "ptrip_vpt", 25, 0, 500);  
