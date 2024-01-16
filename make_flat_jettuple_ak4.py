@@ -550,6 +550,7 @@ selected_data = {
     'source_phi': np.array([event['source_phi'] for event in selected_events]),
     'source_pt': np.array([event['source_pt'] for event in selected_events]),
 }
+total_energy = np.sqrt(selected_data['source_pt']**2 + selected_data['source_mass']**2) * np.cosh(selected_data['source_eta'])
 # Save the selected data to the HDF5 file
 #with h5py.File('out.h5', 'w') as hdf5_file:
 with h5py.File(OutFile[:-5]+'.h5', 'w') as hdf5_file:
@@ -563,46 +564,10 @@ with h5py.File(OutFile[:-5]+'.h5', 'w') as hdf5_file:
     source_mass_dataset = source_group.create_dataset('mass', data=selected_data['source_mass'])
     source_phi_dataset = source_group.create_dataset('phi', data=selected_data['source_phi'])
     source_pt_dataset = source_group.create_dataset('pt', data=selected_data['source_pt'])
-# event_vars_group = hdf5_file.create_group('EventVars')
-# source_group = hdf5_file.create_group('source')
+    source_pt_dataset = source_group.create_dataset('e', data=total_energy)
 
-# # event_vars_group.create_dataset('minasym_12j', data=x)
-# # event_vars_group.create_dataset('minavg_12j', data=x)
-# event_vars_group.create_dataset('normweight', data=data_sarr[3][0])
-
-
-# # source_group.create_dataset('e', data=x) 
-# source_group.create_dataset('eta', data=data_jarr[1])
-# # source_group.create_dataset('label', data=x)
-# # source_group.create_dataset('mask', data=x)
-# source_group.create_dataset('mass', data=data_jarr[3])
-# # source_group.create_dataset('minasym_12j_mask', data=x)
-# # source_group.create_dataset('minavg_12j_mask', data=x)
-# source_group.create_dataset('phi', data=data_jarr[2])
-# source_group.create_dataset('pt', data=data_jarr[0])
-# # source_group.create_dataset('px', data=x)
-# # source_group.create_dataset('py', data=x)
-# # source_group.create_dataset('pz', data=x)
-
-# Close the HDF5 file
 hdf5_file.close()
 
-# tree.SetBranchStatus("cut_flow_diagram",1)
-# for i in range(count):
-#     cutFlowValue[0] = 0
-#     tree.GetBranch("cut_flow_diagram").Fill()
-# for i in range(cut1):
-#     cutFlowValue[0] = 1
-#     tree.GetBranch("cut_flow_diagram").Fill()
-# for i in range(cut2):
-#     cutFlowValue[0] = 2
-#     tree.GetBranch("cut_flow_diagram").Fill()
-# for i in range(cut3):
-#     cutFlowValue[0] = 3
-#     tree.GetBranch("cut_flow_diagram").Fill()
-# for i in range(cut4):
-#     cutFlowValue[0] = 4
-#     tree.GetBranch("cut_flow_diagram").Fill()
 outfile = TFile(OutFile, "recreate")
 cut_flow_hist.Write()
 tree.Write()
