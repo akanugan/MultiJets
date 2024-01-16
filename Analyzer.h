@@ -40,15 +40,12 @@ struct region_variable{
 
 TH1F *h_cutflow;
 TH1F *old_cutflow;
-TH1D *hist_region_1;
-TH1D *hist_region_2;
-TH1D *hist_region_3;
-TH1D *hist_region_4;
 TH1D *ht_plot;
 
 vector<region_variable> variables;
 vector<vector<TH2D*>> cross_variables;
 vector<vector<TH1D*>> hist_variables;
+vector<TH1D*> hist_regions;
 
 
 // TH1D *h_b_Run;  
@@ -157,10 +154,6 @@ void Analyzer::BookHistogram(const char *outFileName) {
 
 
     h_cutflow = new TH1F("CutFlow","cut flow",25,0,25);
-    hist_region_1 = new TH1D("hist_region_1", "Region 1 Histogram", 50, 300, 1750);
-    hist_region_2 = new TH1D("hist_region_2", "Region 2 Histogram", 50, 300, 1750);
-    hist_region_3 = new TH1D("hist_region_3", "Region 3 Histogram", 50, 300, 1750);
-    hist_region_4 = new TH1D("hist_region_4", "Region 4 Histogram", 50, 300, 1750);
     ht_plot = new TH1D("ht_plot", "HT", 99 * 2, 0, 2500);
 
     region_variable masym_var;
@@ -181,7 +174,25 @@ void Analyzer::BookHistogram(const char *outFileName) {
     delta_phi_var.high = 1.5;
     variables.push_back(delta_phi_var);
 
+    region_variable mds_var;
+    mds_var.name = "mds";
+    mds_var.low = 0;
+    mds_var.high = 0.6;
+    variables.push_back(mds_var);
+
+    region_variable qgl_var;
+    qgl_var.name = "qgl";
+    qgl_var.low = 0;
+    qgl_var.high = 5;
+    variables.push_back(qgl_var);
     int bin_num = 50;
+
+    for(int i = 0; i < variables.size() + 1; i++){
+      string name = string("hist_region_") + to_string(i +1);
+      string title = string("Region ") + to_string(i + 1) + string(" Histogram");
+      hist_regions.push_back(new TH1D(name.c_str(), title.c_str(), bin_num, 300, 1750));
+    }
+
     for(int i =0; i < variables.size(); i++){
       vector<TH1D*> row;
       for(int j = 0; j < variables.size() + 1; j++){
@@ -203,7 +214,6 @@ void Analyzer::BookHistogram(const char *outFileName) {
         string title = variables.at(i).name + string(" vs ") + variables.at(j).name;
         row.push_back(new TH2D(name.c_str(), title.c_str(), bin_num, variables.at(i).low, variables.at(i).high,
                                 bin_num, variables.at(j).low, variables.at(j).high));
-
       }
       cross_variables.push_back(row);
     }
