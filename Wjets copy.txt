@@ -1,7 +1,0 @@
-WJetsToQQ_HT-800toInf_0.root
-WJetsToQQ_HT-800toInf_1.root
-WJetsToQQ_HT-800toInf_10.root
-WJetsToQQ_HT-800toInf_100.root
-WJetsToQQ_HT-800toInf_101.root
-WJetsToQQ_HT-800toInf_102.root
-WJetsToQQ_HT-800toInf_103.root

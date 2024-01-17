@@ -7,6 +7,3 @@ FileList*
 *.submit
 *.h5
 *txt~
-*.h5
-
-output/*
