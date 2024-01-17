@@ -542,9 +542,30 @@ for event_index, event in enumerate(data_chain):
         'source_pt': data_jarr[0][:jmax_forh5]
     })
 
+# event weight
+x_sections = {'QCD_HT300to500': 0,
+             'QCD_HT500to700': 29370,
+             'QCD_HT700to1000': 6524,
+             'QCD_HT1000to1500': 1064,
+             'QCD_HT1500to2000': 121.5,
+             'QCD_HT2000toInf': 25.42
+}  
+sample_name = None
+for key in x_sections.keys():
+    if key in InFile:
+        sample_name = key
+        break
+if sample_name is not None:
+    #eve_wt = x_sections[sample_name] / count  
+    #temp fix
+    #eve_wt = 29370 / count
+    eve_wt = 0.01313
+    print("eve_wt: ",eve_wt)
+#print(f"The value of eve_wt for {sample_name} is: {eve_wt}")
+
 # Convert the list of dictionaries to a dictionary of arrays
 selected_data = {
-    'event_vars': np.array([event['event_vars'] for event in selected_events]),
+    'event_vars': np.array([eve_wt for event in selected_events]),
     'source_eta': np.array([event['source_eta'] for event in selected_events]),
     'source_mass': np.array([event['source_mass'] for event in selected_events]),
     'source_phi': np.array([event['source_phi'] for event in selected_events]),
