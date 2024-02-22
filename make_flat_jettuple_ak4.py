@@ -173,8 +173,8 @@ rd = "root://cmseos.fnal.gov//"
 redirector = 'root://cmseos.fnal.gov//store/group/lpctrig/abhijith/mc_samples2017/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1/200824_223503/0000/slimmed_ntuple_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1_1-2.root'
 InFile =  file_list[0]
 # remove /eos/uscms/
-InFile = rd + InFile.replace('/eos/uscms/','')
-#InFile = infile
+#InFile = rd + InFile.replace('/eos/uscms/','')
+InFile = InFile
 
 weight=1.0
 if(args.isdata==0):
