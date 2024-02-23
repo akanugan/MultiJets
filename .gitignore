@@ -13,3 +13,4 @@ FileList*
 *.json
 *.pyc
 *gitignore*
+*.txt

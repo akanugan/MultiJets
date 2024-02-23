@@ -541,25 +541,31 @@ for event_index, event in enumerate(data_chain):
     })
 
 # event weight
-x_sections = {'QCD_HT300to500': 0,
+x_sections = {'QCD_HT300to500': 351400.0,
              'QCD_HT500to700': 29370,
              'QCD_HT700to1000': 6524,
              'QCD_HT1000to1500': 1064,
              'QCD_HT1500to2000': 121.5,
              'QCD_HT2000toInf': 25.42
-}  
+}
+
+xSection_weights = {'QCD_HT300to500': 1,
+                    'QCD_HT500to700': 0.1313,
+                    'QCD_HT700to1000': 0.00466,
+                    'QCD_HT1000to1500': 0.00269,
+                    'QCD_HT1500to2000': 0.00040,
+                    'QCD_HT2000toInf': 0.00017
+}
 sample_name = None
+eve_wt = 1.0
 for key in x_sections.keys():
     if key in InFile:
         sample_name = key
         break
 if sample_name is not None:
-    #eve_wt = x_sections[sample_name] / count  
-    #temp fix
-    #eve_wt = 29370 / count
-    eve_wt = 0.01313
+    #eve_wt = 0.00466
+    eve_wt = xSection_weights[sample_name]
     print("eve_wt: ",eve_wt)
-#print(f"The value of eve_wt for {sample_name} is: {eve_wt}")
 
 # Convert the list of dictionaries to a dictionary of arrays
 selected_data = {
@@ -570,8 +576,7 @@ selected_data = {
     'source_pt': np.array([event['source_pt'] for event in selected_events]),
 }
 total_energy = np.sqrt(selected_data['source_pt']**2 + selected_data['source_mass']**2) * np.cosh(selected_data['source_eta'])
-# Save the selected data to the HDF5 file
-#with h5py.File('out.h5', 'w') as hdf5_file:
+
 with h5py.File(OutFile[:-5]+'.h5', 'w') as hdf5_file:
     # Create datasets for EventVars
     event_vars_group = hdf5_file.create_group('EventVars')
