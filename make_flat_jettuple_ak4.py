@@ -7,8 +7,6 @@ import argparse
 import numpy as np
 import h5py
 
-hdf5_file = h5py.File('out.h5', 'w')
-
 def tri_mds(trip):
     den=((trip[0]+trip[1]+trip[2]).M()**2)+(trip[0].M()**2)+(trip[1].M()**2)+(trip[2].M()**2)
     m12=((trip[0]+trip[1]).M()**2)/den
@@ -240,6 +238,7 @@ for br in (list_of_sbranches+list_of_jbranches):
 
 jmax=30
 tmax=20
+jmax_forh5 = 12
 data_sarr = [array("f", [0.0]) for obj in range(len(list_of_sbranches)-4)]
 data_sarr.extend([array("i", [0]),array("i", [0]),array("f", [0]),array("f", [0])])
 data_jarr = [array("f", jmax*[0.0]) for obj in range(len(list_of_jbranches))]
@@ -273,7 +272,26 @@ for i in range(len(list_of_tbranches)):
 
 cut_flow_hist = TH1F("cut_flow_hist","cut_flow_hist",5,0,5)
 count=0
-for event in data_chain:
+
+# cut1=0
+# cut2=0
+# cut3=0
+# cut4=0
+
+# # Create datasets for EventVars
+# event_vars_group = hdf5_file.create_group('EventVars')
+# event_vars_dataset = event_vars_group.create_dataset('normweight', (num_events,), dtype='float64')
+
+# # Create datasets for source
+# source_group = hdf5_file.create_group('source')
+# source_eta_dataset = source_group.create_dataset('eta', (num_events, jmax_forh5), dtype='float32')
+# source_mass_dataset = source_group.create_dataset('mass', (num_events, jmax_forh5), dtype='float32')
+# source_phi_dataset = source_group.create_dataset('phi', (num_events, jmax_forh5), dtype='float32')
+# source_pt_dataset = source_group.create_dataset('pt', (num_events, jmax_forh5), dtype='float32')
+
+selected_events = []
+#for event in data_chain:
+for event_index, event in enumerate(data_chain):
     count+=1
     cut_flow_hist.Fill(0)
     if(count%1000==0 or count == num_events): print("wrote event :",count,";",100*count/num_events,"%  done ")
@@ -514,22 +532,64 @@ for event in data_chain:
 
     tree.Fill()
 
-# Create groups for different datasets
-s_branches_group = hdf5_file.create_group('s_branches')
-j_branches_group = hdf5_file.create_group('j_branches')
-t_branches_group = hdf5_file.create_group('t_branches')
+    selected_events.append({
+        'event_vars': data_sarr[3][0],
+        'source_eta': data_jarr[1][:jmax_forh5],
+        'source_mass': data_jarr[3][:jmax_forh5],
+        'source_phi': data_jarr[2][:jmax_forh5],
+        'source_pt': data_jarr[0][:jmax_forh5]
+    })
 
-# Store data in HDF5 file
-for i, branch in enumerate(list_of_sbranches):
-    s_branches_group.create_dataset(branch, data=data_sarr[i])
+# event weight
+x_sections = {'QCD_HT300to500': 351400.0,
+             'QCD_HT500to700': 29370,
+             'QCD_HT700to1000': 6524,
+             'QCD_HT1000to1500': 1064,
+             'QCD_HT1500to2000': 121.5,
+             'QCD_HT2000toInf': 25.42
+}
 
-for i, branch in enumerate(list_of_jbranches):
-    j_branches_group.create_dataset(branch, data=data_jarr[i])
+xSection_weights = {'QCD_HT300to500': 1,
+                    'QCD_HT500to700': 0.1313,
+                    'QCD_HT700to1000': 0.00466,
+                    'QCD_HT1000to1500': 0.00269,
+                    'QCD_HT1500to2000': 0.00040,
+                    'QCD_HT2000toInf': 0.00017
+}
+sample_name = None
+eve_wt = 1.0
+for key in x_sections.keys():
+    if key in InFile:
+        sample_name = key
+        break
+if sample_name is not None:
+    #eve_wt = 0.00466
+    eve_wt = xSection_weights[sample_name]
+    print("eve_wt: ",eve_wt)
 
-for i, branch in enumerate(list_of_tbranches):
-    t_branches_group.create_dataset(branch, data=data_tarr[i])
+# Convert the list of dictionaries to a dictionary of arrays
+selected_data = {
+    'event_vars': np.array([eve_wt for event in selected_events]),
+    'source_eta': np.array([event['source_eta'] for event in selected_events]),
+    'source_mass': np.array([event['source_mass'] for event in selected_events]),
+    'source_phi': np.array([event['source_phi'] for event in selected_events]),
+    'source_pt': np.array([event['source_pt'] for event in selected_events]),
+}
+total_energy = np.sqrt(selected_data['source_pt']**2 + selected_data['source_mass']**2) * np.cosh(selected_data['source_eta'])
 
-# Close the HDF5 file
+with h5py.File(OutFile[:-5]+'.h5', 'w') as hdf5_file:
+    # Create datasets for EventVars
+    event_vars_group = hdf5_file.create_group('EventVars')
+    event_vars_dataset = event_vars_group.create_dataset('normweight', data=selected_data['event_vars'],chunks=True, maxshape=(None,))
+
+    # Create datasets for source
+    source_group = hdf5_file.create_group('source')
+    source_eta_dataset = source_group.create_dataset('eta', data=selected_data['source_eta'])
+    source_mass_dataset = source_group.create_dataset('mass', data=selected_data['source_mass'])
+    source_phi_dataset = source_group.create_dataset('phi', data=selected_data['source_phi'])
+    source_pt_dataset = source_group.create_dataset('pt', data=selected_data['source_pt'])
+    source_pt_dataset = source_group.create_dataset('e', data=total_energy)
+
 hdf5_file.close()
 
 outfile = TFile(OutFile, "recreate")

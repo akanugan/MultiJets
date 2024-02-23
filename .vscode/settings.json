@@ -45,5 +45,7 @@
         "stdexcept": "cpp",
         "streambuf": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "CodeGPT.apiKey": "OpenAI",
+    "CodeGPT.Autocomplete.enabled": true
 }

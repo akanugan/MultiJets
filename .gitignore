@@ -7,3 +7,10 @@ FileList*
 *.submit
 *.h5
 *txt~
+/**/*.ckpt
+*.csv
+*.yaml
+*.json
+*.pyc
+*gitignore*
+*.txt
