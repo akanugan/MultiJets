@@ -5,17 +5,18 @@ import numpy as np
 import hist
 from hist import Hist
 
+torch.cuda.is_available()
+
 import matplotlib.pyplot as plt
 #import pandas as pd
 
 
 #dataset is 94312
-X = torch.load("x_tensor.pd")
-Y = torch.load("y_tensor.pd")
+X = torch.load("x_1750_tensor.pd")
+Y = torch.load("y_1750_tensor.pd")
 
 
-
-ratio = 0.85
+ratio = 0.93
 
 X_train = X[:round(len(X)*ratio)]
 Y_train = Y[:round(len(Y)*ratio)]
@@ -24,7 +25,6 @@ Y_test = Y[round(len(Y)*ratio):]
 
 
 print("Loaded tensors, training data size " + str(len(X_train)) + ", test data size " + str(len(X_test)) )
-exit()
 
 model = nn.Sequential(
     nn.Linear(80, 64),
@@ -54,7 +54,7 @@ def masym_model(X):
 loss_fn = nn.BCELoss()  # binary cross entropy
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-n_epochs = 50
+n_epochs = 75
 batch_size = 20
 
 losses = []
@@ -98,12 +98,12 @@ plt.savefig("plots/loss.png")
 
 
 print("Plotting Triplet Mass...")
-M = torch.load("m_tensor.pd")
+M = torch.load("m_1750_tensor.pd")
 M_train = M[:round(len(M)*ratio)]
 M_test = M[round(len(M)*ratio):]
 
 
-ax = hist.axis.Regular(40, 0, 1500, flow=False, name="x")
+ax = hist.axis.Regular(40, 500, 2500, flow=False, name="x")
 cax = hist.axis.StrCategory(["Neural Network", "Mass Asymmetry", "Truth"], name="c")
 
 full_hist = Hist(ax,cax)
