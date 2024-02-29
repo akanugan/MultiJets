@@ -1,18 +1,32 @@
+import os
+import argparse
+
 import torch
 import numpy as np
 import uproot
-#import pandas as pd
 
-tree = uproot.open("/uscms/home/jlawless/nobackup/MultiJets/full_ntuples/slimmedNtup_gl1750.root")["events"]
+import variable_input as vin
 
-phi = tree["jtrip_phi"].array()
-delta = tree["jtrip_delta"].array()
-masym = tree["jtrip_masym"].array()
-qgl = tree["jtrip_qgl"].array()
-mds = tree["jtrip_mds"].array()
+
+parser = argparse.ArgumentParser(description="Processes the root file into the tensor format needed for the Neural Network.")
+parser.add_argument("inFile", help="Location of input file/files")
+parser.add_argument('-t',"--title", help="Title for the directory", default="nn")
+args = parser.parse_args()
+
+os.mkdir(args.title)
+os.mkdir(args.title + "/plots")
+
+
+tree = uproot.open(args.inFile)["events"]
+
+functions = vin.input_dict()
+
+variables = {}
+for key in functions.keys():
+    variables[key] = tree[key].array()
+
 
 mass = tree["jtrip_mass"].array()
-
 match = tree["jtrip_match"].array()
 
 events = []
@@ -29,22 +43,9 @@ for j in range(len(mass)):
     for i in range(10):
         #make one entry per triplet pair
         tp = []
-        #only need one mass asymmetry per pair, since it should be the same
-        tp.append(masym[j][2*i])
 
-        tp.append(delta[j][2*i])
-        tp.append(delta[j][2*i + 1])
-
-        #calculate the delta phi and give them that
-        tp.append(phi[j][2*i+1] - phi[j][2*i] - 3.1415)
-
-        tp.append(mds[j][2*i])
-        tp.append(mds[j][2*i + 1])
-
-        tp.append(qgl[j][2*i])
-        tp.append(qgl[j][2*i + 1])
-
-        
+        for key in variables.keys():
+            functions[key](tp,variables[key],j,i)
 
         #its only signal if both are signal
         if(match[j][2*i] != 0 and match[j][2*i + 1] != 0):
@@ -64,21 +65,27 @@ for j in range(len(mass)):
         continue
     events.append(event)
 
-print(len(events))
-
-
-
 data = np.array(events)
 
-X = np.array([i.flatten() for i in data[:,:,0:8]])
-Y = data[:,:,8]
-M = data[:,:,9:]
+X = np.array([i.flatten() for i in data[:,:,0:-3]])
+Y = data[:,:,-3]
+M = data[:,:,-2:]
 
 X = torch.tensor(X, dtype=torch.float32)
 Y = torch.tensor(Y, dtype=torch.float32)
 M = torch.tensor(M, dtype=torch.float32)
 
-torch.save(X,'x_1750_tensor.pd')
-torch.save(Y,'y_1750_tensor.pd')
-torch.save(M,'m_1750_tensor.pd')
+torch.save(X,args.title +'/x_tensor.pd')
+torch.save(Y,args.title +'/y_tensor.pd')
+torch.save(M,args.title +'/m_tensor.pd')
 
+
+f = open(args.title + "/model_info.txt", "w")
+f.write("Processed " + str(len(mass)) + " events, kept " + str(len(data)) + "\n \n")
+
+f.write("Using inputs: \n")
+for key in functions.keys():
+    f.write("   -" + key)
+    f.write('\n')
+f.write('\n')
+f.close()
