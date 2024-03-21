@@ -20,7 +20,7 @@ X = torch.load(args.title + "/x_tensor.pd")
 Y = torch.load(args.title + "/y_tensor.pd")
 
 
-ratio = 0.90
+ratio = 0.95
 
 X_train = X[:round(len(X)*ratio)]
 Y_train = Y[:round(len(Y)*ratio)]
@@ -31,6 +31,8 @@ f = open(args.title + "/model_info.txt", "a")
 
 model = nn.Sequential(
     nn.Linear(X_train.size()[1], 64),
+    nn.ReLU(),
+    nn.Linear(64, 64),
     nn.ReLU(),
     nn.Linear(64, 20),
     nn.ReLU(),
@@ -65,7 +67,7 @@ def masym_model(X):
     return y_val
 
 loss_fn = nn.BCELoss()  # binary cross entropy
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.01)
 
 n_epochs = 1000
 batch_size = 20

@@ -18,7 +18,7 @@ args = parser.parse_args()
 X = torch.load(args.title + "/x_tensor.pd")
 Y = torch.load(args.title + "/y_tensor.pd")
 
-ratio = 0.90
+ratio = 0.95
 
 X_train = X[:round(len(X)*ratio)]
 Y_train = Y[:round(len(Y)*ratio)]
@@ -64,18 +64,43 @@ nn_rounded = y_pred.argmax(1)
 
 m = torch.zeros(y_pred.shape).scatter(1, nn_rounded.unsqueeze(1), 1.0)
 
-model_accuracy = (y_pred.round() == Y_test).float().mean()
+truth_rounded = Y_test.argmax(1)
+
+
+
+# print(y_pred.round()[0])
+# print(Y_test[0])
+# print(y_pred.round()[0] == Y_test[0])
+# print((y_pred.round()[0] == Y_test[0]).float().mean())
+# print()
+# print(y_pred.round()[1])
+# print(Y_test[1])
+# print(y_pred.round()[1] == Y_test[1])
+# print((y_pred.round()[1] == Y_test[1]).float().mean())
+# print()
+# print(y_pred.round()[2])
+# print(Y_test[2])
+# print(y_pred.round()[2] == Y_test[2])
+# print((y_pred.round()[2] == Y_test[2]).float().mean())
+# print()
+# print(y_pred.round()[3])
+# print(Y_test[3])
+# print(y_pred.round()[3] == Y_test[3])
+# print((y_pred.round()[3] == Y_test[3]).float().mean())
+# print()
+
+model_accuracy = (nn_rounded == truth_rounded).float().mean()
 print(f"Accuracy {model_accuracy}")
-print(f"Model Accuracy {model_accuracy}",file=f)
+#print(f"Model Accuracy {model_accuracy}",file=f)
 
 
 y_masym_pred = [masym_model(k) for k in X_test]
 y_masym_pred = torch.tensor(y_masym_pred, dtype=torch.float32)
+masym_rounded = y_masym_pred.argmax(1)
 
-
-masym_accuracy = (y_masym_pred.round() == Y_test).float().mean()
+masym_accuracy = (masym_rounded == truth_rounded).float().mean()
 print(f"Mass Asymmetry Minimization Accuracy {masym_accuracy}")
-print(f"Mass Asymmetry Minimization Accuracy {masym_accuracy}",file=f)
+#print(f"Mass Asymmetry Minimization Accuracy {masym_accuracy}",file=f)
 print('',file=f)
 
 f.close()
@@ -86,14 +111,12 @@ M_train = M[:round(len(M)*ratio)]
 M_test = M[round(len(M)*ratio):]
 
 
-ax = hist.axis.Regular(40, 500, 2500, flow=False, name="x")
+ax = hist.axis.Regular(40, 0, 2250, flow=False, name="x")
 cax = hist.axis.StrCategory(["Neural Network", "Mass Asymmetry", "Truth"], name="c")
 
 full_hist = Hist(ax,cax)
 
-truth_rounded = Y_test.argmax(1)
-masym_rounded = y_masym_pred.argmax(1)
-
+exit()
 
 for i,masses in enumerate(M_test):
     if masses[truth_rounded[i]][0] > masses[[truth_rounded[i]]][1]:
