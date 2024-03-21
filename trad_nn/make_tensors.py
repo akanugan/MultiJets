@@ -7,7 +7,6 @@ import uproot
 
 import variable_input as vin
 
-
 parser = argparse.ArgumentParser(description="Processes the root file into the tensor format needed for the Neural Network.")
 parser.add_argument("inFile", help="Location of input file/files")
 parser.add_argument('-t',"--title", help="Title for the directory", default="nn")
@@ -15,6 +14,8 @@ args = parser.parse_args()
 
 os.mkdir(args.title)
 os.mkdir(args.title + "/plots")
+
+print(torch.cuda.is_available())
 
 
 tree = uproot.open(args.inFile)["events"]

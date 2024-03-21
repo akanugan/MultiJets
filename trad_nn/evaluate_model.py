@@ -13,6 +13,9 @@ parser = argparse.ArgumentParser(description="Trains a neural network on data pr
 parser.add_argument('-t',"--title", help="Title of the directory", default="nn")
 args = parser.parse_args()
 
+print(torch.cuda.is_available())
+
+exit()
 
 #dataset is 94312
 X = torch.load(args.title + "/x_tensor.pd")

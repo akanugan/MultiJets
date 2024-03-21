@@ -5,7 +5,9 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-torch.cuda.is_available()
+print("Is a gpu available: " + str(torch.cuda.is_available()))
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(torch.cuda.get_device_name(device=device))
 
 import matplotlib.pyplot as plt
 #import pandas as pd
@@ -15,10 +17,10 @@ parser.add_argument('-t',"--title", help="Title of the directory", default="nn")
 args = parser.parse_args()
 
 
-#dataset is 94312
-X = torch.load(args.title + "/x_tensor.pd")
-Y = torch.load(args.title + "/y_tensor.pd")
 
+#dataset is 94312
+X = torch.load(args.title + "/x_tensor.pd").to(device)
+Y = torch.load(args.title + "/y_tensor.pd").to(device)
 
 ratio = 0.95
 
@@ -40,7 +42,7 @@ model = nn.Sequential(
     nn.ReLU(),
     nn.Linear(20, 10),
     nn.Sigmoid()
-)
+).to(device)
 
 print("",file=f)
 print(model, file=f)
@@ -67,7 +69,7 @@ def masym_model(X):
     return y_val
 
 loss_fn = nn.BCELoss()  # binary cross entropy
-optimizer = optim.Adam(model.parameters(), lr=0.01)
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 n_epochs = 1000
 batch_size = 20
@@ -76,7 +78,10 @@ min_loss, stale_epochs = 100.00, 0
 
 losses = []
 
+import time
+
 for epoch in range(n_epochs):
+    start = time.time()
     batch_loss = []
     for i in range(0, len(X_train), batch_size):
         Xbatch = X_train[i:i+batch_size]
@@ -89,12 +94,10 @@ for epoch in range(n_epochs):
 
     with torch.no_grad():
         batch_loss.append(loss.item())
-            # Forward pass on validation set.
         output = model(X_test)
 
         val_loss = loss_fn(output, Y_test)
 
-            # Monitor the loss function to prevent overtraining.
         if stale_epochs > 20:
             break
 
@@ -104,16 +107,20 @@ for epoch in range(n_epochs):
             torch.save(model.state_dict(), args.title + "/pytorch_model_best.pth")
         else:
             stale_epochs += 1
-
+    end = time.time()
+    print("Epoch time: " + str(end - start))
       
     print(f'Finished epoch {epoch}, latest loss {loss}')
-    losses.append(float(np.mean(batch_loss)))
+    #losses.append(float(np.mean(batch_loss)))
 
 print("Trained for " +str(epoch) + " epochs",file=f)
 print('',file=f)
 
 
 print("Plotting Loss vs Epochs...")
+
+import matplotlib
+matplotlib.use('agg')
 
 fig, ax = plt.subplots()
 plt.plot(losses,color='orange')
