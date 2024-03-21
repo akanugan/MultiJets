@@ -1,0 +1,1 @@
+singularity run --nv --bind `readlink $HOME` --bind `readlink -f ${HOME}/nobackup/` --bind `readlink -f /storage/local/data1/gpuscratch` --bind /cvmfs /cvmfs/unpacked.cern.ch/registry.hub.docker.com/fnallpc/fnallpc-docker:pytorch-1.9.0-cuda11.1-cudnn8-runtime-singularity
