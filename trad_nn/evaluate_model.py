@@ -15,8 +15,6 @@ args = parser.parse_args()
 
 print(torch.cuda.is_available())
 
-exit()
-
 #dataset is 94312
 X = torch.load(args.title + "/x_tensor.pd")
 Y = torch.load(args.title + "/y_tensor.pd")
@@ -29,11 +27,13 @@ X_test = X[round(len(X)*ratio):]
 Y_test = Y[round(len(Y)*ratio):]
 
 model = nn.Sequential(
-    nn.Linear(X_train.size()[1], 64),
+    nn.Linear(X_train.size()[1], 1064),
     nn.ReLU(),
-    nn.Linear(64, 20),
+    nn.Linear(1064, 1064),
     nn.ReLU(),
-    nn.Linear(20, 20),
+    nn.Linear(1064, 200),
+    nn.ReLU(),
+    nn.Linear(200, 20),
     nn.ReLU(),
     nn.Linear(20, 10),
     nn.Sigmoid()
@@ -119,7 +119,6 @@ cax = hist.axis.StrCategory(["Neural Network", "Mass Asymmetry", "Truth"], name=
 
 full_hist = Hist(ax,cax)
 
-exit()
 
 for i,masses in enumerate(M_test):
     if masses[truth_rounded[i]][0] > masses[[truth_rounded[i]]][1]:

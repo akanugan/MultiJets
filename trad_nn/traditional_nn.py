@@ -6,10 +6,12 @@ import torch.optim as optim
 import numpy as np
 
 print("Is a gpu available: " + str(torch.cuda.is_available()))
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(torch.cuda.get_device_name(device=device))
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#print(torch.cuda.get_device_name(device=device))
 
-import matplotlib.pyplot as plt
+#nvidia-smi
+
+
 #import pandas as pd
 
 parser = argparse.ArgumentParser(description="Trains a neural network on data processed by the make_tensors script")
@@ -19,8 +21,10 @@ args = parser.parse_args()
 
 
 #dataset is 94312
-X = torch.load(args.title + "/x_tensor.pd").to(device)
-Y = torch.load(args.title + "/y_tensor.pd").to(device)
+#X = torch.load(args.title + "/x_tensor.pd").to(device)
+#Y = torch.load(args.title + "/y_tensor.pd").to(device)
+X = torch.load(args.title + "/x_tensor.pd")
+Y = torch.load(args.title + "/y_tensor.pd")
 
 ratio = 0.95
 
@@ -32,17 +36,17 @@ Y_test = Y[round(len(Y)*ratio):]
 f = open(args.title + "/model_info.txt", "a")
 
 model = nn.Sequential(
-    nn.Linear(X_train.size()[1], 64),
+    nn.Linear(X_train.size()[1], 1064),
     nn.ReLU(),
-    nn.Linear(64, 64),
+    nn.Linear(1064, 1064),
     nn.ReLU(),
-    nn.Linear(64, 20),
+    nn.Linear(1064, 200),
     nn.ReLU(),
-    nn.Linear(20, 20),
+    nn.Linear(200, 20),
     nn.ReLU(),
     nn.Linear(20, 10),
     nn.Sigmoid()
-).to(device)
+)
 
 print("",file=f)
 print(model, file=f)
@@ -72,7 +76,7 @@ loss_fn = nn.BCELoss()  # binary cross entropy
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 n_epochs = 1000
-batch_size = 20
+batch_size = 2000
 
 min_loss, stale_epochs = 100.00, 0
 
@@ -97,6 +101,7 @@ for epoch in range(n_epochs):
         output = model(X_test)
 
         val_loss = loss_fn(output, Y_test)
+        print(f'val_loss {val_loss}')
 
         if stale_epochs > 20:
             break
@@ -106,12 +111,13 @@ for epoch in range(n_epochs):
             stale_epochs = 0
             torch.save(model.state_dict(), args.title + "/pytorch_model_best.pth")
         else:
+            print("bad")
             stale_epochs += 1
     end = time.time()
     print("Epoch time: " + str(end - start))
       
     print(f'Finished epoch {epoch}, latest loss {loss}')
-    #losses.append(float(np.mean(batch_loss)))
+    losses.append(float(np.mean(batch_loss)))
 
 print("Trained for " +str(epoch) + " epochs",file=f)
 print('',file=f)
@@ -119,6 +125,7 @@ print('',file=f)
 
 print("Plotting Loss vs Epochs...")
 
+import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use('agg')
 
