@@ -7,6 +7,14 @@ import argparse
 import numpy as np
 import h5py
 
+def calculate_HT(pt,eta,phi,m):
+    jets = []
+    for i in range(len(pt)):
+        tvec = TLorentzVector()
+        tvec.SetPtEtaPhiM(pt[i],eta[i],phi[i],m[i])
+        jets.append(tvec)
+    return sum([j.E() for j in jets])
+
 def tri_mds(trip):
     den=((trip[0]+trip[1]+trip[2]).M()**2)+(trip[0].M()**2)+(trip[1].M()**2)+(trip[2].M()**2)
     m12=((trip[0]+trip[1]).M()**2)/den
@@ -167,11 +175,13 @@ ntup_loc = '/eos/uscms/store/group/lpctrig/abhijith/mc_samples2017/'
 #InFile = ntup_wjets_loc + file_list[int(args.file_num)]
 #InFile = ntup_loc + file_list[int(args.file_num)]
 #InFile = 'WJetsToQQ_HT-800toInf_1.root'
-rd = "root://cmseos.fnal.gov//"
-redirector = 'root://cmseos.fnal.gov//store/group/lpctrig/abhijith/mc_samples2017/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1/200824_223503/0000/slimmed_ntuple_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1_1-2.root'
+#rd = "root://cmseos.fnal.gov//"
+rd = "root://hip-cms-se.csc.fi//"
+
+#redirector = 'root://cmseos.fnal.gov//store/group/lpctrig/abhijith/mc_samples2017/QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8/Slimmed_Ntuples_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1/200824_223503/0000/slimmed_ntuple_QCD_HT1000to1500_TuneCP5_13TeV-madgraph-pythia8_v1_1-2.root'
 InFile =  file_list[0]
 # remove /eos/uscms/
-InFile = rd + InFile.replace('/eos/uscms/','')
+InFile = rd + InFile
 #InFile = infile
 
 weight=1.0
@@ -194,7 +204,7 @@ print(InFile,OutFile)
 
 # load FWlite python libraries
 # from DataFormats.FWLite import Handle, Events
-data_chain=TChain("slimmedntuplizer/events")
+data_chain=TChain("Events")
 #data_files = glob.glob(InFile)
 data_files = InFile
 #data_files = 'WJetsToQQ_HT-800toInf_1.root'
@@ -211,12 +221,16 @@ data_chain.SetBranchStatus("*", 0)
 
 list_of_sbranches = [
     "Run", "Lumi", "Event", "xscn", "trigger_results", "mds63", "mds6332",
-    "jmds63", "jmds6332", "sixpt", "fj_ak4_HT", "loose6j_qgl", "tight6j_qgl",
+    "jmds63", "jmds6332", "sixpt", "event_HT", "loose6j_qgl", "tight6j_qgl",
     "net_tight_qgl", "fj_ak4_num", "trip_num","pmds63", "pmds6332"
 ]
 list_of_jbranches = [
     "fj_ak4_pt", "fj_ak4_eta", "fj_ak4_phi", "fj_ak4_m", "fj_ak4_area",
     "fj_ak4_jec", "fj_ak4_csv", "fj_ak4_jetid", "fj_ak4_match", "fj_ak4_qgl"
+]
+list_of_branches_in_mcTree = [
+    "run", "luminosityBlock", "event", "ScoutingJet_pt", "ScoutingJet_eta", "ScoutingJet_phi", "ScoutingJet_mass", "ScoutingJet_area",
+    "ScoutingJet_csv", "ScoutingJet_genJetIdx", "ScoutingJet_particleNet_prob_g","ScoutingJet_particlenet_prob_uds"
 ]
 if(args.isdata==0):
     list_of_jbranches.extend(["fj_ak4_matched_genjet_mass","fj_ak4_matched_genjet_pt","fj_ak4_matched_deltam"])
@@ -233,8 +247,8 @@ list_of_tbranches = [
 ]
 
 
-for br in (list_of_sbranches+list_of_jbranches):
-    if(br != "mds63" and br != "mds6332" and br != "sixpt" and br != "jmds63" and br != "jmds6332" and br != "trip_num" and br != "loose6j_qgl" and br != "tight6j_qgl" and br !="net_tight_qgl"): data_chain.SetBranchStatus(br,1)
+for br in (list_of_branches_in_mcTree):
+    data_chain.SetBranchStatus(br,1)
 
 jmax=30
 tmax=20
@@ -295,27 +309,29 @@ for event_index, event in enumerate(data_chain):
     count+=1
     cut_flow_hist.Fill(0)
     if(count%1000==0 or count == num_events): print("wrote event :",count,";",100*count/num_events,"%  done ")
-    if(len(event.fj_ak4_jetid)<6): continue
+    if(event.nScoutingJet<6): continue
     cut_flow_hist.Fill(1)
-    if(sum(event.fj_ak4_jetid[:6])<6): continue
-    cut_flow_hist.Fill(2)
-    if(event.fj_ak4_HT<550): continue
+    # Don't know what this cut is doing?
+    #if(sum(event.fj_ak4_jetid[:6])<6): continue
+    #cut_flow_hist.Fill(2)
+    event_HT = calculate_HT(event.ScoutingJet_pt, event.ScoutingJet_eta,event.ScoutingJet_phi,event.ScoutingJet_mass)
+    if(event_HT<550): continue
     cut_flow_hist.Fill(3)
     gj_index = []
     gj_qgl = []
-    for i, qgl in enumerate(event.fj_ak4_qgl):
+    for i, qgl in enumerate(event.ScoutingJet_particlenet_prob_uds):
         if (qgl > 0.13):
             gj_index.append(i)
             gj_qgl.append(qgl)
     if (len(gj_index) < 6): continue
     cut_flow_hist.Fill(4)
-    n=min(len(event.fj_ak4_pt),30)
+    n=min(len(event.ScoutingJet_pt),30)
     # print(gj_index,gj_qgl)
 
     #Repeat with JECs
-    jtrips = triplet(event.fj_ak4_pt, event.fj_ak4_eta, event.fj_ak4_phi,
-                     event.fj_ak4_m, event.fj_ak4_jec, event.fj_ak4_match,
-                     event.fj_ak4_csv, 1, gj_index, event.fj_ak4_qgl)
+    jtrips = triplet(event.ScoutingJet_pt, event.ScoutingJet_eta, event.ScoutingJet_phi,
+                     event.ScoutingJet_mass, np.zeros(len(event.ScoutingJet_pt)), np.zeros(len(event.ScoutingJet_pt)),
+                     np.zeros(len(event.ScoutingJet_pt)), 0, gj_index, event.ScoutingJet_particlenet_prob_uds)
     jtrip_mass = flatten([obj.mass for obj in jtrips.tp])
     jtrip_vpt = flatten([obj.vpt for obj in jtrips.tp])
     jtrip_spt = flatten([obj.spt for obj in jtrips.tp])
@@ -335,9 +351,9 @@ for event_index, event in enumerate(data_chain):
     jtrip_m63 = flatten(jtrips.tp_m63)
 
     #Do triplet cals
-    trips = triplet(event.fj_ak4_pt, event.fj_ak4_eta, event.fj_ak4_phi,
-                    event.fj_ak4_m, event.fj_ak4_jec, event.fj_ak4_match,
-                    event.fj_ak4_csv, 0, gj_index, event.fj_ak4_qgl)
+    trips = triplet(event.ScoutingJet_pt, event.ScoutingJet_eta, event.ScoutingJet_phi,
+                     event.ScoutingJet_mass, np.zeros(len(event.ScoutingJet_pt)), np.zeros(len(event.ScoutingJet_pt)),
+                     np.zeros(len(event.ScoutingJet_pt)), 0, gj_index, event.ScoutingJet_particlenet_prob_uds)
     trip_mass = flatten([obj.mass for obj in trips.tp])
     trip_vpt = flatten([obj.vpt for obj in trips.tp])
     trip_spt = flatten([obj.spt for obj in trips.tp])
@@ -365,9 +381,9 @@ for event_index, event in enumerate(data_chain):
 
     #Repeat with JECs
     pt_index =[0,1,2,3,4,5]
-    ptrips = triplet(event.fj_ak4_pt, event.fj_ak4_eta, event.fj_ak4_phi,
-                     event.fj_ak4_m, event.fj_ak4_jec, event.fj_ak4_match,
-                     event.fj_ak4_csv, 1, pt_index, event.fj_ak4_qgl)
+    ptrips = triplet(event.ScoutingJet_pt, event.ScoutingJet_eta, event.ScoutingJet_phi,
+                     event.ScoutingJet_mass, np.zeros(len(event.ScoutingJet_pt)), np.zeros(len(event.ScoutingJet_pt)),
+                     np.zeros(len(event.ScoutingJet_pt)), 0, pt_index, event.ScoutingJet_particlenet_prob_uds)
     ptrip_mass = flatten([obj.mass for obj in ptrips.tp])
     ptrip_vpt = flatten([obj.vpt for obj in ptrips.tp])
     ptrip_spt = flatten([obj.spt for obj in ptrips.tp])
@@ -415,33 +431,33 @@ for event_index, event in enumerate(data_chain):
 
     lqgl = 0
     for i in range(n):
-        if(event.fj_ak4_qgl[i]<0.5): break
+        if(event.ScoutingJet_particlenet_prob_uds[i]<0.5): break
         else: lqgl+=1
 
     tqgl = 0
     for i in range(n):
-        if(event.fj_ak4_qgl[i]<0.72): break
+        if(event.ScoutingJet_particlenet_prob_uds[i]<0.72): break
         else: tqgl+=1
 
     nqgl = 0
     for i in range(n):
-        if(event.fj_ak4_qgl[i]>0.72): nqgl+=1
+        if(event.ScoutingJet_particlenet_prob_uds[i]>0.72): nqgl+=1
 
-    data_sarr[0][0]=event.Run
-    data_sarr[1][0]=event.Lumi
-    data_sarr[2][0]=event.Event
+    data_sarr[0][0]=event.run
+    data_sarr[1][0]=event.luminosityBlock
+    data_sarr[2][0]=event.event
     data_sarr[3][0]=weight
     data_sarr[4][0]=1
     data_sarr[5][0]=mds63
     data_sarr[6][0]=mds6332
     data_sarr[7][0]=jmds63
     data_sarr[8][0]=jmds6332
-    data_sarr[9][0]=event.fj_ak4_pt[5]
-    data_sarr[10][0]=event.fj_ak4_HT
+    data_sarr[9][0]=event.ScoutingJet_pt[5]
+    data_sarr[10][0]= event_HT
     data_sarr[11][0] = lqgl
     data_sarr[12][0] = tqgl
     data_sarr[13][0] = nqgl
-    data_sarr[14][0]=min(len(event.fj_ak4_pt),30)
+    data_sarr[14][0]=min(len(event.ScoutingJet_pt),30)
     data_sarr[15][0]=20
     data_sarr[16][0]=pmds63
     data_sarr[17][0]=pmds6332
@@ -451,20 +467,20 @@ for event_index, event in enumerate(data_chain):
     # print(obj[0],)
     # print('done init')
     for i in range(n):
-        data_jarr[0][i]=event.fj_ak4_pt[i]
-        data_jarr[1][i]=event.fj_ak4_eta[i]
-        data_jarr[2][i]=event.fj_ak4_phi[i]
-        data_jarr[3][i]=event.fj_ak4_m[i]
-        data_jarr[4][i]=event.fj_ak4_area[i]
-        data_jarr[5][i]=event.fj_ak4_jec[i]
-        data_jarr[6][i]=event.fj_ak4_csv[i]
-        data_jarr[7][i]=event.fj_ak4_jetid[i]
-        data_jarr[8][i]=event.fj_ak4_match[i]
-        data_jarr[9][i]=event.fj_ak4_qgl[i]
-        if(args.isdata==0):  
-            data_jarr[10][i]=event.fj_ak4_matched_genjet_mass[i]
-            data_jarr[11][i]=event.fj_ak4_matched_genjet_pt[i]
-            data_jarr[12][i]=event.fj_ak4_matched_deltam[i]
+        data_jarr[0][i]=event.ScoutingJet_pt[i]
+        data_jarr[1][i]=event.ScoutingJet_eta[i]
+        data_jarr[2][i]=event.ScoutingJet_phi[i]
+        data_jarr[3][i]=event.ScoutingJet_mass[i]
+        data_jarr[4][i]=event.ScoutingJet_area[i]
+        data_jarr[5][i]= -1
+        data_jarr[6][i]= -1
+        data_jarr[7][i]=event.ScoutingJet_genJetIdx[i]
+        data_jarr[8][i]= -1
+        data_jarr[9][i]=event.ScoutingJet_particlenet_prob_uds[i]
+        #if(args.isdata==0):  
+            #data_jarr[10][i]=event.fj_ak4_matched_genjet_mass[i]
+            #data_jarr[11][i]=event.fj_ak4_matched_genjet_pt[i]
+            #data_jarr[12][i]=event.fj_ak4_matched_deltam[i]
 
 
     for i in range(20):
