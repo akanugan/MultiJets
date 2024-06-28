@@ -6,6 +6,7 @@ isdata=$3
 
 currDir=$(pwd)
 
+voms-proxy-info -all
 # Set up the CMSSW environment or any other necessary setup
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 
@@ -29,5 +30,7 @@ cd -
 
 echo "hostname"
 hostname
+source /cvmfs/sft.cern.ch/lcg/views/LCG_104/x86_64-el9-gcc11-opt/setup.sh
+xrdfs root://hip-cms-se.csc.fi ls /store/user/pinkaew/adelina_backup/scouting/run3/2022/mc/qcd
 
-python $1 $2 $3 
+python3 $1 $2 $3 

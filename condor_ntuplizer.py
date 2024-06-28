@@ -37,6 +37,7 @@ def submit_condor_jobs(input_file, nfPerJob, isdata=0):
         with open(f"{job_name}.submit", 'w') as submit_file:
             submit_file.write("universe = vanilla\n")
             submit_file.write(f"Executable = {exe_script}\n")
+            submit_file.write("use_x509userproxy = true\n")
             submit_file.write("Should_Transfer_Files = YES\n")
             submit_file.write("WhenToTransferOutput = ON_EXIT_OR_EVICT\n")
             submit_file.write(f"Transfer_Input_Files = {files_to_transfer},{output_filename}\n")
