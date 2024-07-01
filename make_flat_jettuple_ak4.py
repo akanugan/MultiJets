@@ -13,7 +13,7 @@ def calculate_HT(pt,eta,phi,m):
         tvec = TLorentzVector()
         tvec.SetPtEtaPhiM(pt[i],eta[i],phi[i],m[i])
         jets.append(tvec)
-    return sum([j.E() for j in jets])
+    return sum([j.Et() for j in jets])
 
 def tri_mds(trip):
     den=((trip[0]+trip[1]+trip[2]).M()**2)+(trip[0].M()**2)+(trip[1].M()**2)+(trip[2].M()**2)
@@ -193,7 +193,7 @@ if(args.isdata==0):
 
 # OutFile = 'output2/trip2_'+InFile.split('/')[-1]
 #OutFile = 'output2/trip4_'+InFile.split('/')[-1]
-OutFile = 'slimmedNtup_'+InFile.split('/')[-1]
+OutFile = 'slimmedNtup_'+InFile.split('/')[-5]+'_'+InFile.split('/')[-1]
 
 #print(InFile,OutFile,args.file_num)
 print(InFile,OutFile)
@@ -593,21 +593,21 @@ selected_data = {
     'source_pt': np.array([event['source_pt'] for event in selected_events]),
 }
 total_energy = np.sqrt(selected_data['source_pt']**2 + selected_data['source_mass']**2) * np.cosh(selected_data['source_eta'])
-
-with h5py.File(OutFile[:-5]+'.h5', 'w') as hdf5_file:
-    # Create datasets for EventVars
-    event_vars_group = hdf5_file.create_group('EventVars')
-    event_vars_dataset = event_vars_group.create_dataset('normweight', data=selected_data['event_vars'],chunks=True, maxshape=(None,))
-
-    # Create datasets for source
-    source_group = hdf5_file.create_group('source')
-    source_eta_dataset = source_group.create_dataset('eta', data=selected_data['source_eta'])
-    source_mass_dataset = source_group.create_dataset('mass', data=selected_data['source_mass'])
-    source_phi_dataset = source_group.create_dataset('phi', data=selected_data['source_phi'])
-    source_pt_dataset = source_group.create_dataset('pt', data=selected_data['source_pt'])
-    source_pt_dataset = source_group.create_dataset('e', data=total_energy)
-
-hdf5_file.close()
+#
+#with h5py.File(OutFile[:-5]+'.h5', 'w') as hdf5_file:
+#    # Create datasets for EventVars
+#    event_vars_group = hdf5_file.create_group('EventVars')
+#    event_vars_dataset = event_vars_group.create_dataset('normweight', data=selected_data['event_vars'],chunks=True, maxshape=(None,))
+#
+#    # Create datasets for source
+#    source_group = hdf5_file.create_group('source')
+#    source_eta_dataset = source_group.create_dataset('eta', data=selected_data['source_eta'])
+#    source_mass_dataset = source_group.create_dataset('mass', data=selected_data['source_mass'])
+#    source_phi_dataset = source_group.create_dataset('phi', data=selected_data['source_phi'])
+#    source_pt_dataset = source_group.create_dataset('pt', data=selected_data['source_pt'])
+#    source_pt_dataset = source_group.create_dataset('e', data=total_energy)
+#
+#hdf5_file.close()
 
 outfile = TFile(OutFile, "recreate")
 cut_flow_hist.Write()
