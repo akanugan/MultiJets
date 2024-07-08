@@ -14,3 +14,9 @@ FileList*
 *.pyc
 *gitignore*
 *.txt
+*.pdf
+*.png
+*.pd
+AnaExe
+*.pth
+*.swp
