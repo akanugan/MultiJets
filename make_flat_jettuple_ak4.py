@@ -13,6 +13,7 @@ def calculate_HT(pt,eta,phi,m):
         tvec = TLorentzVector()
         tvec.SetPtEtaPhiM(pt[i],eta[i],phi[i],m[i])
         jets.append(tvec)
+    #Should be pt()    
     return sum([j.Et() for j in jets])
 
 def tri_mds(trip):
