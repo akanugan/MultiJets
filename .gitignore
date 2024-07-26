@@ -20,3 +20,9 @@ FileList*
 AnaExe
 *.pth
 *.swp
+.env/*
+bootstrap.sh
+.bashrc
+.condor_config
+shell
+logo-svg.svg
