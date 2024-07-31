@@ -1,28 +1,19 @@
-# %%
+print("not stuck")
 import matplotlib.pyplot as plt
 import awkward as ak
-import numpy as np
 
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 from coffea.analysis_tools import PackedSelection
 
-import dask_awkward as dak
-
-import itertools as iter
-
-import hist
-from hist import Hist
-
 import vector as vec
+print("not stuck")
 
 from distributed import Client
 from lpcjobqueue import LPCCondorCluster
 
-import numba
-
 import hist.dask as hda
+print("not stuck")
 
-# %%
 class ScoutingNanoAODSchema(NanoAODSchema):
 
     mixins = {
@@ -82,6 +73,7 @@ client = Client(cluster)
 # %%
 file_list = [line.strip('\n') for line in open("TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_0000.txt").readlines()] + [line.strip('\n') for line in open("TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_0001.txt").readlines()]
 file_list = ["root://cmseos.fnal.gov//" + string for string in file_list]
+print("not stuck")
 
 NanoAODSchema.warn_missing_crossrefs = False
 
@@ -93,19 +85,16 @@ small_events = NanoEventsFactory.from_root(
 
 #uproot.concatenate(file_list)
 
-# %%
-
-# %%
 scouting_selection = PackedSelection()
 
 scouting_selection.add("SixJets", ak.num(small_events.ScoutingJet, axis=1) >5)
 
-# %%
+
 good_events = small_events[scouting_selection.all("SixJets")]
 selected_jets = good_events.ScoutingJet[:,0:6]
 trijet = ak.combinations(selected_jets, 3, fields=["j1","j2","j3"])
+print("not stuck")
 
-# %%
 vec.register_awkward()
 
 mds_val, m12, m13, m23 = tri_mds(trijet)
@@ -244,14 +233,14 @@ cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_
 
 print("here!")
 dask_hist =  (
-    hda.Hist.new.Reg(50, 100, 300, name="inv_mass", label="TTBar Trijet, with selections [GeV]")
+    hda.Hist.new.Reg(50, 100, 300, name="inv_mass", label="TTBar Trijet, few selections [GeV]")
     .Double()
-    .fill(ak.flatten(cut_events.Trijet[cut].m))
+    .fill(ak.flatten(cut_events.Trijet.m))
 )
 print("here!")
 dask_hist.compute().plot1d()
 print("here!")
-plt.savefig('Run3/invmass_2.png')
+plt.savefig('Run3/invmass_3.png')
 plt.clf()
 print("here!")
 
