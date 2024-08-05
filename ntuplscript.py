@@ -14,6 +14,10 @@ from lpcjobqueue import LPCCondorCluster
 import hist.dask as hda
 print("not stuck")
 
+cluster = LPCCondorCluster()
+cluster.adapt(minimum=5, maximum=800)
+client = Client(cluster)
+
 class ScoutingNanoAODSchema(NanoAODSchema):
 
     mixins = {
@@ -65,12 +69,6 @@ def tri_mds6332(sj, tj, mds):
         r120 = 1/(20**0.5)
         return ak.sum(((((tj.j1 + tj.j2 + tj.j3).mass/den)**2 + mds**0.5)-r120)**2, axis=1)
 
-
-cluster = LPCCondorCluster()
-cluster.adapt(minimum=5, maximum=800)
-client = Client(cluster)
-
-# %%
 file_list = [line.strip('\n') for line in open("TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_0000.txt").readlines()] + [line.strip('\n') for line in open("TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_0001.txt").readlines()]
 file_list = ["root://cmseos.fnal.gov//" + string for string in file_list]
 print("not stuck")
