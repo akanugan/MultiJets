@@ -1,16 +1,12 @@
-# %%
+print("not stuck")
 import matplotlib.pyplot as plt
 import awkward as ak
-import numpy as np
 
 from coffea.nanoevents import NanoEventsFactory, NanoAODSchema
 from coffea.analysis_tools import PackedSelection
 
-import hist
-from hist import Hist
-import hist.dask as hda
-
 import vector as vec
+print("not stuck")
 
 from distributed import Client
 from lpcjobqueue import LPCCondorCluster
@@ -18,8 +14,8 @@ from lpcjobqueue import LPCCondorCluster
 import hist.dask as hda
 print("not stuck")
 
-cluster = LPCCondorCluster()
-cluster.adapt(minimum=5, maximum=800)
+cluster = LPCCondorCluster(memory="4GB", disk="10GB")
+cluster.adapt(minimum=0, maximum=800)
 client = Client(cluster)
 
 class ScoutingNanoAODSchema(NanoAODSchema):
@@ -52,7 +48,6 @@ def sample_name(name):
             return key
     return None
 
-# %%
 def mass_asymmetry(sj, tj):
     total_p4 = sj[:,0] + sj[:,1] + sj[:,2] + sj[:,3] + sj[:,4] + sj[:,5]
     cart = ak.cartesian([total_p4, tj])
@@ -102,14 +97,8 @@ file_list = ["root://cmseos.fnal.gov//" + string for string in file_list]
 
 NanoAODSchema.warn_missing_crossrefs = False
 
-events = NanoEventsFactory.from_root(
-    {file : "Events" for file in file_list},
-    schemaclass=ScoutingNanoAODSchema,
-    metadata={"dataset": "TTto4Q_TuneCP5_13p6TeV_powheg-pythia8"},
-).events()
-
 small_events = NanoEventsFactory.from_root(
-    {file : "Events" for file in file_list[0:2]},
+    {file : "Events" for file in file_list},
     schemaclass=ScoutingNanoAODSchema,
     metadata={"dataset": "TTto4Q_TuneCP5_13p6TeV_powheg-pythia8"},
 ).events()
@@ -120,7 +109,7 @@ for f in [line.strip('\n') for line in open("qcd_files.txt").readlines()]:
     file_list = [line.strip('\n') for line in open(f).readlines()]
     file_list = ["root://cmseos.fnal.gov//" + string for string in file_list]
     qcd_events[sample_name(f)] = NanoEventsFactory.from_root(
-        {file : "Events" for file in file_list[0:2]},
+        {file : "Events" for file in file_list},
         schemaclass=ScoutingNanoAODSchema,
         metadata={"dataset": sample_name(f)},
         ).events()
@@ -128,38 +117,22 @@ for f in [line.strip('\n') for line in open("qcd_files.txt").readlines()]:
     #num_events = ak.num(qcd_events[sample_name(f)],axis=0).compute()
     #qcd_events[sample_name(f)]["Weight"] = dak.Array(np.full(num_events,(x_sections[sample_name(f)] / num_events)))
 
-# dask_hist =  (
-#     hda.Hist.new.Reg(60, 0, 6000, name="jet pt", label="Jet pt [GeV]")
-#     .StrCat(x_sections.keys(), name='dataset')
-#     .Weight()
-# )
+weights = {}
 
-# for ky in x_sections.keys():
-#     if ky not in ['TTto4Q']:
-#         dask_hist.fill(ak.drop_none(ak.max(qcd_events[ky].ScoutingJet.pt,axis=1)), ky, weight=(x_sections[ky] / (ak.num(qcd_events[ky], axis=0))))
-
-# dask_hist.compute().plot1d(stack=True,histtype="fill")
-# plt.yscale('log')
-# plt.legend()
-
-# # %%
-# dask_hist =  (
-#     hda.Hist.new.Reg(50, 20, 2000, name="jet pt", label="Jet pt [GeV]")
-#     .Weight()
-#     .fill(ak.drop_none(qcd_events['QCD_PT-1000to1400'].ScoutingJet)[:,0].pt, weight=1)
-# )
-
-# dask_hist.compute().plot1d()
-# plt.yscale('log')
+for ky in x_sections.keys():
+    if ky not in ['TTto4Q']:
+        weights[ky] = (x_sections[ky] / (ak.num(qcd_events[ky], axis=0)).compute())
+    else:
+        weights[ky] = (x_sections[ky] / (ak.num(small_events, axis=0)).compute())
 
 vec.register_awkward()
 
 def format_good_events(ev):
     sel = PackedSelection()
-    sel.add("SixJets", ak.num(ev.ScoutingJet, axis=1) >5)
+    sel.add("SixJets", ak.num(ev.ScoutingJet[ev.ScoutingJet.eta < 2.4], axis=1) >5)
 
     result = ev[sel.all("SixJets")]
-    selected_jets = result.ScoutingJet[:,0:6]
+    selected_jets = result.ScoutingJet[result.ScoutingJet.eta < 2.4][:,0:6]
     trijet = ak.combinations(selected_jets, 3, fields=["j1","j2","j3"])
 
     mds_val, m12, m13, m23 = tri_mds(trijet)
@@ -199,161 +172,44 @@ for key in x_sections.keys():
 
 good_events = format_good_events(small_events)
 
-# h1 = Hist(
-#     hist.axis.Regular(50, 0, 3000, name="x", label="HT"),
-#     hist.storage.Weight()
-# )
-# h1.fill(good_events.HT.compute())
+print("Made it to histogramming!")
 
-# dask_hist_HT =  (
-#     hda.Hist.new.Reg(60, 0, 6000, name="ht", label="HT [GeV]")
-#     .StrCat(x_sections.keys(), name='dataset')
-#     .Weight()
-# )
+def fill_cut_hist(tmp_hist, ev, cat, label):
+    overallcut = (ev.HT > 550)
+    cut_events = ev[overallcut]
+    cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 250)
+    tmp_hist.fill(ak.flatten(cut_events.Trijet[cut].m), cat, weight=weights[label])
 
-# for ky in x_sections.keys():
-#     if ky not in ['TTto4Q']:
-#         dask_hist_HT.fill(good_qcd_events[ky].HT, ky, weight=(x_sections[ky] / (ak.num(qcd_events[ky], axis=0))))
-
-# dask_hist_HT.fill(good_events.HT, 'TTto4Q', weight=(x_sections['TTto4Q'] / (ak.num(small_events, axis=0))))
-
-# dask_hist_HT.compute().plot1d(stack=True,histtype="fill")
-
-# plt.yscale("log")
-# plt.legend()
-
-# h1.plot()
-# plt.yscale("log")
-
-# # %%
-# h2 = Hist(
-#     hist.axis.Regular(50, 0, 3600, name="x", label="Jet Pt"),
-#     hist.storage.Weight()
-# )
-# h2.fill(ak.flatten(good_events.ScoutingJet.pt).compute())
-
-# # %%
-# good_events.Trijet.fields
-
-# # %%
-# h3 = Hist(
-#     hist.axis.Regular(50, 0, 1, name="x", label="mds"),
-#     hist.storage.Weight()
-# )
-# h3.fill(ak.flatten(good_events.Trijet.mds.compute()))
-
-# # %%
-# h5 = Hist(
-#     hist.axis.Regular(50, -500, 500, name="x", label="delta"),
-#     hist.storage.Weight()
-# )
-# h5.fill(ak.flatten(good_events.Trijet.delta.compute()))
-
-# # %%
-# h6 = Hist(
-#     hist.axis.Regular(50, 0, 5, name="x", label="mds6332"),
-#     hist.storage.Weight()
-# )
-# h6.fill(good_events.mds6332.compute())
-
-# # %%
-# h6.plot()
-
-# # %%
-# h4 = Hist(
-#     hist.axis.Regular(50, 100, 300, name="x", label="Trijet Invariant Mass"),
-#     hist.axis.StrCategory(['Full'], growth=True, name='dataset'),
-#     hist.storage.Weight()
-# )
-# h4.fill(ak.flatten(good_events.Trijet.mass.compute()), "Full")
-# overallcut = (good_events.HT > 550)
-# cut_events = good_events[overallcut]
-# cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) #& (cut_events.Trijet.delta > 250)
-# h4.fill(ak.flatten(cut_events.Trijet[cut].mass.compute()), "CutNoDelta")
-# cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 0)
-# h4.fill(ak.flatten(cut_events.Trijet[cut].mass.compute()), "DeltaGr0")
-# cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 125)
-# h4.fill(ak.flatten(cut_events.Trijet[cut].mass.compute()), "DeltaGr125")
-# cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 250)
-# h4.fill(ak.flatten(cut_events.Trijet[cut].mass.compute()), "DeltaGr250")
-# cut_events = good_events #[overallcut]
-# cut = ak.argmin(cut_events.Trijet.masym,axis=1,keepdims=True)
-# h4.fill(ak.flatten(cut_events.Trijet[cut].mass).compute(), "MinAsy")
-
-
-# # %%
-# h4.plot(stack=False, histtype="step")
-# plt.yscale("log")
-# plt.legend(loc="upper right")
-
-# # %%
-# h4[:,""].plot(stack=False, histtype="step")
-# plt.legend(loc="upper right")
-
-# # %%
-# h4[:,["DeltaGr125","DeltaGr0","DeltaGr250"]].plot(stack=False, histtype="step")
-# plt.yscale("log")
-# plt.legend()
-
-# # %%
-# h4 = Hist(
-#     hist.axis.Regular(50, 100, 300, name="x", label="Trijet Invariant Mass"),
-#     hist.axis.StrCategory(['Full', 'Cut'], growth=True, name='dataset'),
-#     hist.storage.Weight()
-# )
-# h4.fill(ak.flatten(good_events.Trijet.mass.compute()), "Full")
-# overallcut = (good_events.mds6332 < 1.25)
-# cut_events = good_events[overallcut]
-# cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 250)
-
-# # %%
-# dask_hist =  (
-#     hda.Hist.new.Reg(50, 100, 300, name="inv_mass", label="TTBar Trijet, with selections [GeV]")
-#     .Double()
-#     .fill(ak.flatten(cut_events.Trijet[cut].mass))
-# )
-
-# # %%
-# dask_hist.compute().plot1d()
-
-# %%
 dask_hist_mass =  (
-    hda.Hist.new.Reg(60, 0, 6000, name="mass", label="Invariant Mass [GeV]")
-    #.StrCat(['FullQCD','MinAsyQCD'], name='dataset')
+    hda.Hist.new.Reg(60, 100, 300, name="mass_qcd", label="Inv Mass [GeV]")
+    .StrCat(["Full","Cut","FullTT","CutTT"], name='dataset')
     .Weight()
 )
-for key in x_sections.keys():
-    if key not in ['TTto4Q']:
-        dask_hist_mass.fill(ak.flatten(good_qcd_events[key].Trijet.m), weight=(x_sections[key] / (ak.num(qcd_events[key], axis=0).compute())))
-        # overallcut = (good_qcd_events[key].HT > 550)
-        # cut_events = good_qcd_events[key][overallcut]
-        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) #& (cut_events.Trijet.delta > 250)
-        # dask_hist_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "CutNoDeltaQCD",weight=(x_sections[key] / (ak.num(qcd_events[key], axis=0)))
-        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 0)
-        # dask_hist_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "DeltaGr0QCD",weight=(x_sections[key] / (ak.num(qcd_events[key], axis=0)))
-        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 125)
-        # dask_hist_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "DeltaGr125QCD",weight=(x_sections[key] / (ak.num(qcd_events[key], axis=0)))
-        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 250)
-        # dask_hist_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "DeltaGr250QCD",weight=(x_sections[key] / (ak.num(qcd_events[key], axis=0)))
-        # cut_events = good_qcd_events[key] #[overallcut]
-        # cut = ak.argmin(cut_events.Trijet.masym,axis=1,keepdims=True)
-        # dask_hist_mass.fill(ak.flatten(cut_events.Trijet[cut].m), "MinAsyQCD",weight=(x_sections[key] / (ak.num(qcd_events[key], axis=0).compute())))
-        print("Done with " + key)
 
-dask_hist_mass.compute().plot1d()
+for ky in x_sections.keys():
+    if ky not in ['TTto4Q']:
+        dask_hist_mass.fill(ak.flatten(good_qcd_events[ky].Trijet.m), "Full", weight=weights[ky])
+        fill_cut_hist(dask_hist_mass, good_qcd_events[ky], "Cut", ky)
+
+dask_hist_mass.fill(ak.flatten(good_events.Trijet.m), "FullTT", weight=weights['TTto4Q'])
+fill_cut_hist(dask_hist_mass, good_events, 'CutTT', 'TTto4Q')
+
+hm = dask_hist_mass.compute()
+
+hm[:,'Full'].plot1d(stack=True,label="QCD")
+hm[:,'FullTT'].plot1d(stack=True,label="TTbar")
+
 plt.yscale('log')
+plt.legend()
+plt.savefig("Run3/invmass_qcd_full.png")
 
-plt.savefig('Run3/qcd_invmass.png')
+plt.clf()
 
-# h4[:,"Full"].plot(stack=False, histtype="step")
-# plt.legend()
+hm[:,'Cut'].plot1d(stack=True,label="QCD")
+hm[:,'CutTT'].plot1d(stack=True,label="TTbar")
 
-# plt.savefig('Run3/invmass_full.png')
-# plt.clf()
-
-print("Done!")
+plt.yscale('log')
+plt.legend()
+plt.savefig("Run3/invmass_qcd.png")
 
 client.close()
-
-
-
