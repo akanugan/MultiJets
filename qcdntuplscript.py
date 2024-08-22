@@ -91,7 +91,6 @@ def tri_mds6332(sj, tj, mds):
         return ak.sum(((((tj.j1 + tj.j2 + tj.j3).mass/den)**2 + mds**0.5)-r120)**2, axis=1)
 
 
-# %%
 file_list = [line.strip('\n') for line in open("TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_0000.txt").readlines()] + [line.strip('\n') for line in open("TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_0001.txt").readlines()]
 file_list = ["root://cmseos.fnal.gov//" + string for string in file_list]
 
@@ -121,9 +120,9 @@ weights = {}
 
 for ky in x_sections.keys():
     if ky not in ['TTto4Q']:
-        weights[ky] = (x_sections[ky] / (ak.num(qcd_events[ky], axis=0)).compute())
+        weights[ky] = x_sections[ky] / (ak.num(qcd_events[ky], axis=0))
     else:
-        weights[ky] = (x_sections[ky] / (ak.num(small_events, axis=0)).compute())
+        weights[ky] = x_sections[ky] / (ak.num(small_events, axis=0))
 
 vec.register_awkward()
 
@@ -182,34 +181,34 @@ def fill_cut_hist(tmp_hist, ev, cat, label):
 
 dask_hist_mass =  (
     hda.Hist.new.Reg(60, 100, 300, name="mass_qcd", label="Inv Mass [GeV]")
-    .StrCat(["Full","Cut","FullTT","CutTT"], name='dataset')
+    .StrCat(x_sections.keys(), name='dataset')
     .Weight()
 )
 
 for ky in x_sections.keys():
     if ky not in ['TTto4Q']:
-        dask_hist_mass.fill(ak.flatten(good_qcd_events[ky].Trijet.m), "Full", weight=weights[ky])
-        fill_cut_hist(dask_hist_mass, good_qcd_events[ky], "Cut", ky)
+        #dask_hist_mass.fill(ak.flatten(good_qcd_events[ky].Trijet.m), "Full", weight=weights[ky])
+        fill_cut_hist(dask_hist_mass, good_qcd_events[ky], ky, ky)
 
-dask_hist_mass.fill(ak.flatten(good_events.Trijet.m), "FullTT", weight=weights['TTto4Q'])
-fill_cut_hist(dask_hist_mass, good_events, 'CutTT', 'TTto4Q')
+#dask_hist_mass.fill(ak.flatten(good_events.Trijet.m), "FullTT", weight=weights['TTto4Q'])
+fill_cut_hist(dask_hist_mass, good_events, 'TTto4Q', 'TTto4Q')
 
 hm = dask_hist_mass.compute()
 
-hm[:,'Full'].plot1d(stack=True,label="QCD")
-hm[:,'FullTT'].plot1d(stack=True,label="TTbar")
+hm.plot1d(stack=False,label="Cut")
+# hm[:,'FullTT'].plot1d(stack=True,label="TTbar")
 
-plt.yscale('log')
-plt.legend()
-plt.savefig("Run3/invmass_qcd_full.png")
+# plt.yscale('log')
+# plt.legend()
+# plt.savefig("Run3/invmass_qcd_full.png")
 
-plt.clf()
+# plt.clf()
 
-hm[:,'Cut'].plot1d(stack=True,label="QCD")
-hm[:,'CutTT'].plot1d(stack=True,label="TTbar")
+# hm[:,'Cut'].plot1d(stack=True,label="QCD")
+# hm[:,'CutTT'].plot1d(stack=True,label="TTbar")
 
-plt.yscale('log')
-plt.legend()
+# plt.yscale('log')
+# plt.legend()
 plt.savefig("Run3/invmass_qcd.png")
 
 client.close()
