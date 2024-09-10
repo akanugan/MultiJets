@@ -1,26 +1,28 @@
 """Custom processors, implementing coffea.processor.ProcessorABC.
 
-Implements a couple of different processors that can then be run
-by an analyzer.
+Implements a couple of different processors that can then be run by an analyzer.
 """
 
 import awkward as ak
 import hist.dask as hda
-from coffea import processor
+from coffea.processor import ProcessorABC
 
-"""Processor that uses truth matching for SemiLeptonicTops.
+from helper_functions import format_trijet_events
 
-This uses the GenPart collection to find the correct ScoutingJet
-objects, to study the perfect world mass resolution of the
-ScoutingJet collection. It uses truth to find the leptonic top, then
-selects the jets from the hadronic tops and makes a histogram of the W
-and the top mass.
-"""
-class SemiLeptonicTopTruthProcessor(processor.ProcessorABC):
-    def __init__(self):
+
+class SemiLeptonicTopTruthProcessor(ProcessorABC):
+    """Processor that uses truth matching for SemiLeptonicTops.
+
+    This uses the GenPart collection to find the correct ScoutingJet objects, to study
+    the perfect world mass resolution of the ScoutingJet collection. It uses truth to
+    find the leptonic top, then selects the jets from the hadronic tops and makes a
+    histogram of the W and the top mass.
+    """
+
+    def __init__(self) -> None:
         pass
 
-    def process(self, events):
+    def process(self, events) -> dict:
         dataset = events.metadata["dataset"]
 
 
@@ -28,7 +30,7 @@ class SemiLeptonicTopTruthProcessor(processor.ProcessorABC):
             hda.Hist.new
             .StrCat(["w", "top"], name="object")
             .Log(1000, 30, 500., name="mass", label="Invariant Mass [GeV]")
-            .Int64()
+            .Weight()
         )
 
         """
@@ -143,20 +145,25 @@ class SemiLeptonicTopTruthProcessor(processor.ProcessorABC):
     def postprocess(self, accumulator):
         pass
 
+class SemiLeptonicTopCutProcessor(ProcessorABC):
+    """Processor to find SemiLeptonicTops using cuts.
 
-class SemiLeptonicTopProcessor(processor.ProcessorABC):
-    def __init__(self):
+    This is intended to study the resolution of the ScoutingJet collection. The strategy
+    is to look for leptonically decaying tops by identifying single leptons and MET, and
+    then once ttbar is identified we can look at the hadronically decaying tops.
+    """
+
+    def __init__(self) -> None:
         pass
 
-    def process(self, events):
+    def process(self, events) -> dict:
         dataset = events.metadata["dataset"]
-
 
         h_mass = (
             hda.Hist.new
             .StrCat(["w", "top"], name="object")
             .Log(1000, 30, 500., name="mass", label="Invariant Mass [GeV]")
-            .Int64()
+            .Weight()
         )
 
         cut = (ak.num(events.ScoutingJet) >= 4)\
@@ -164,7 +171,7 @@ class SemiLeptonicTopProcessor(processor.ProcessorABC):
                 & (ak.sum(events.ScoutingJet.particleNet_prob_b == 0 ,axis=1) > 1)\
                 & (ak.sum(events.ScoutingJet.particleNet_prob_b > 0.00001, axis=1) > 1)
 
-        w_jet_cut = events[cut].ScoutingJet.particleNet_prob_b == 0 
+        w_jet_cut = events[cut].ScoutingJet.particleNet_prob_b == 0
         b_jet_cut = events[cut].ScoutingJet.particleNet_prob_b > 0.00001
 
         non_b_jets = events[cut].ScoutingJet[w_jet_cut]
@@ -180,6 +187,55 @@ class SemiLeptonicTopProcessor(processor.ProcessorABC):
                 "mass": h_mass,
             },
         }
+
+    def postprocess(self, accumulator):
+        pass
+
+class TrijetProcessor(ProcessorABC):
+    """Processor to search for Trijets."""
+
+    def __init__(self) -> None:
+        pass
+
+    def process(self, events) -> dict:
+        dataset = events.metadata["dataset"]
+
+        good_events = format_trijet_events(events, jet_eta_cut=2.4)
+
+        h_mass = (
+            hda.Hist.new
+            .StrCat(["Full"], growth=True, name="dataset")
+            .Log(1000, 100, 300, name="x", label="Trijet Invariant Mass")
+            .Weight()
+        )
+
+        h_mass.fill(ak.flatten(good_events.Trijet.mass), "Full")
+
+        overallcut = (good_events.HT > 550)
+        cut_events = good_events[overallcut]
+
+        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) #& (cut_events.Trijet.delta > 250)
+        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "CutNoDelta")
+
+        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 0)
+        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "DeltaGr0")
+
+        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 125)
+        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "DeltaGr125")
+
+        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 250)
+        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "DeltaGr250")
+
+        cut_events = good_events #[overallcut]
+        cut = ak.argmin(cut_events.Trijet.masym,axis=1,keepdims=True)
+        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "MinAsy")
+
+        return {
+            dataset: {
+                "mass": h_mass,
+            },
+        }
+
 
     def postprocess(self, accumulator):
         pass
