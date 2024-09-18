@@ -1,7 +1,6 @@
 """Various physics functions used in the processors."""
 
 import awkward as ak
-import vector as vec
 from coffea.analysis_tools import PackedSelection
 
 x_sections = {
@@ -50,9 +49,13 @@ def mass_asymmetry(sj, tj):
     masym = (vm - ovm)/(vm + ovm)
     return masym
 
-def tri_mds(tj):
-    den=((tj.j1+tj.j2+tj.j3).mass**2)+(tj.j1.mass**2)+(tj.j2.mass**2)+(tj.j3.mass**2)
+def tri_mds(tj) -> tuple:
+    """Find the mds scores and pairs of invariant masses.
 
+    One problem is I haven't found a good way to sort the m12,m13,m23 pairs in a lazy,
+    Dask way. When that becomes important I'll work on it.
+    """
+    den=((tj.j1+tj.j2+tj.j3).mass**2)+(tj.j1.mass**2)+(tj.j2.mass**2)+(tj.j3.mass**2)
 
     #it would be nice if these were sorted, but
     #struggling to do it with coffea
@@ -81,39 +84,45 @@ def tri_mds6332(sj, tj, mds):
     r120 = 1/(20**0.5)
     return ak.sum(((((tj.j1 + tj.j2 + tj.j3).mass/den)**2 + mds**0.5)-r120)**2, axis=1)
 
-def format_trijet_events(ev, jet_eta_cut: float=2.4):
-    vec.register_awkward()
-
+def temp():
     sel = PackedSelection()
-    sel.add("SixJets", ak.num(ev.ScoutingJet[ev.ScoutingJet.eta < jet_eta_cut], axis=1) >= 6)
 
-    result = ev[sel.all("SixJets")]
-    selected_jets = result.ScoutingJet[result.ScoutingJet.eta < jet_eta_cut][:,0:6]
-    trijet = ak.combinations(selected_jets, 3, fields=["j1","j2","j3"])
+def format_trijet_events(ev, jet_eta_cut: float=2.4):
+    # vec.register_awkward()
 
-    mds_val, m12, m13, m23 = tri_mds(trijet)
+    # sel = PackedSelection()
+    # sel.add("SixJets", ak.num(ev.ScoutingJet[ev.ScoutingJet.eta < jet_eta_cut], axis=1) >= 6)
 
-    result["Trijet"] = ak.zip(
-        {
-            "j1": trijet.j1,
-            "j2": trijet.j2,
-            "j3": trijet.j3,
-            "px": trijet.j1.px + trijet.j2.px + trijet.j3.px,
-            "py": trijet.j1.py + trijet.j2.py + trijet.j3.py,
-            "pz": trijet.j1.pz + trijet.j2.pz + trijet.j3.pz,
-            "e": trijet.j1.E + trijet.j2.E + trijet.j3.E,
-            "masym": mass_asymmetry(selected_jets,trijet),
-            "mds": mds_val,
-            "m12": m12,
-            "m13": m13,
-            "m23": m23,
-            "delta": tri_delta(trijet),
-            "mds63": tri_mds63(selected_jets, trijet),
-        },
-        with_name="Momentum4D",
-    )
+    # result = ev[sel.all("SixJets")]
 
-    result["HT"] = ak.sum(abs(result.ScoutingJet.pt), axis=1)
-    result["mds6332"] = tri_mds6332(selected_jets, trijet, mds_val)
+    # result = ev[ak.num(ev.ScoutingJet[ev.ScoutingJet.eta < 2.4], axis=1) >= 6]
+    result = ev
+    # selected_jets = result.ScoutingJet[result.ScoutingJet.eta < jet_eta_cut][:,0:6]
+    # trijet = ak.combinations(selected_jets, 3, fields=["j1","j2","j3"])
+
+    # mds_val, m12, m13, m23 = tri_mds(trijet)
+
+    # result["Trijet"] = ak.zip(
+    #     {
+    #         "j1": trijet.j1,
+    #         "j2": trijet.j2,
+    #         "j3": trijet.j3,
+    #         "px": trijet.j1.px + trijet.j2.px + trijet.j3.px,
+    #         "py": trijet.j1.py + trijet.j2.py + trijet.j3.py,
+    #         "pz": trijet.j1.pz + trijet.j2.pz + trijet.j3.pz,
+    #         "e": trijet.j1.E + trijet.j2.E + trijet.j3.E,
+    #         "masym": mass_asymmetry(selected_jets,trijet),
+    #         "mds": mds_val,
+    #         "m12": m12,
+    #         "m13": m13,
+    #         "m23": m23,
+    #         "delta": tri_delta(trijet),
+    #         "mds63": tri_mds63(selected_jets, trijet),
+    #     },
+    #     with_name="Momentum4D",
+    # )
+
+    # result["HT"] = ak.sum(abs(result.ScoutingJet.pt), axis=1)
+    # result["mds6332"] = tri_mds6332(selected_jets, trijet, mds_val)
 
     return result

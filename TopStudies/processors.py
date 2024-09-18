@@ -7,7 +7,7 @@ import awkward as ak
 import hist.dask as hda
 from coffea.processor import ProcessorABC
 
-from helper_functions import format_trijet_events
+# from helper_functions import format_trijet_events
 
 
 class SemiLeptonicTopTruthProcessor(ProcessorABC):
@@ -20,7 +20,7 @@ class SemiLeptonicTopTruthProcessor(ProcessorABC):
     """
 
     def __init__(self) -> None:
-        pass
+        """Init class."""
 
     def process(self, events) -> dict:
         dataset = events.metadata["dataset"]
@@ -154,7 +154,7 @@ class SemiLeptonicTopCutProcessor(ProcessorABC):
     """
 
     def __init__(self) -> None:
-        pass
+        """Init class."""
 
     def process(self, events) -> dict:
         dataset = events.metadata["dataset"]
@@ -194,45 +194,49 @@ class SemiLeptonicTopCutProcessor(ProcessorABC):
 class TrijetProcessor(ProcessorABC):
     """Processor to search for Trijets."""
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self):
+        """Init class."""
 
-    def process(self, events) -> dict:
+    def process(self, events):
         dataset = events.metadata["dataset"]
 
-        good_events = format_trijet_events(events, jet_eta_cut=2.4)
+        # good_events = format_trijet_events(events, jet_eta_cut=2.4)
+        cut = ak.num(events.ScoutingJet[events.ScoutingJet.eta < 2.4].pt, axis = 1) >= 6
 
-        h_mass = (
-            hda.Hist.new
-            .StrCat(["Full"], growth=True, name="dataset")
-            .Log(1000, 100, 300, name="x", label="Trijet Invariant Mass")
-            .Weight()
-        )
+        #good_events = events[cut]
+        # h_mass = (
+        #     hda.Hist.new
+        #     .StrCat(["Full","CutNoDelta","DeltaGr250"], growth=True, name="cuts")
+        #     .Log(1000, 100, 300, name="mass", label="Trijet Invariant Mass")
+        #     .Weight()
+        # )
 
-        h_mass.fill(ak.flatten(good_events.Trijet.mass), "Full")
+        # h_mass.fill(mass=ak.flatten(good_events.Trijet.mass), cuts="Full")
 
-        overallcut = (good_events.HT > 550)
-        cut_events = good_events[overallcut]
+        # overallcut = (good_events.HT > 550)
+        # cut_events = good_events[overallcut]
 
-        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) #& (cut_events.Trijet.delta > 250)
-        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "CutNoDelta")
+        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175)
+        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="CutNoDelta")
 
-        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 0)
-        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "DeltaGr0")
+        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 0)
+        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="DeltaGr0")
 
-        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 125)
-        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "DeltaGr125")
+        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 125)
+        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="DeltaGr125")
 
-        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 250)
-        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "DeltaGr250")
+        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 250)
+        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="DeltaGr250")
 
-        cut_events = good_events #[overallcut]
-        cut = ak.argmin(cut_events.Trijet.masym,axis=1,keepdims=True)
-        h_mass.fill(ak.flatten(cut_events.Trijet[cut].mass), "MinAsy")
+        # cut_events = good_events #[overallcut]
+        # cut = ak.argmin(cut_events.Trijet.masym,axis=1,keepdims=True)
+        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="MinAsy")
 
         return {
             dataset: {
-                "mass": h_mass,
+                #"mass": h_mass,
+                #"pt": ak.num(good_events, axis=0),
+                "cut": cut,
             },
         }
 
