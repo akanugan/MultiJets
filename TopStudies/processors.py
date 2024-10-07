@@ -5,9 +5,10 @@ Implements a couple of different processors that can then be run by an analyzer.
 
 import awkward as ak
 import hist.dask as hda
+import numpy as np
 from coffea.processor import ProcessorABC
 
-# from helper_functions import format_trijet_events
+from helper_functions import format_trijet_events
 
 
 class SemiLeptonicTopTruthProcessor(ProcessorABC):
@@ -200,43 +201,82 @@ class TrijetProcessor(ProcessorABC):
     def process(self, events):
         dataset = events.metadata["dataset"]
 
-        # good_events = format_trijet_events(events, jet_eta_cut=2.4)
-        cut = ak.num(events.ScoutingJet[events.ScoutingJet.eta < 2.4].pt, axis = 1) >= 6
+        good_events = format_trijet_events(events, jet_eta_cut=2.4)
 
-        #good_events = events[cut]
-        # h_mass = (
-        #     hda.Hist.new
-        #     .StrCat(["Full","CutNoDelta","DeltaGr250"], growth=True, name="cuts")
-        #     .Log(1000, 100, 300, name="mass", label="Trijet Invariant Mass")
-        #     .Weight()
-        # )
+        h_mass = (
+            hda.Hist.new
+            .StrCat(["Full","CutNoDelta","DeltaGr250","DeltaGr0","DeltaGr125","MinAsy"], growth=True, name="cuts")
+            .Reg(1000, 100, 300, name="mass", label="Trijet Invariant Mass")
+            .Weight()
+        )
 
-        # h_mass.fill(mass=ak.flatten(good_events.Trijet.mass), cuts="Full")
+        h_HT = (
+            hda.Hist.new
+            .StrCat(["Full","CutNoDelta","DeltaGr250","DeltaGr0","DeltaGr125","MinAsy"], growth=True, name="cuts")
+            .Reg(1000, 0, 3000, name="ht", label="Scalar Sum of Hadronic Transverse Energy")
+            .Weight()
+        )
 
-        # overallcut = (good_events.HT > 550)
-        # cut_events = good_events[overallcut]
+        h_delta = (
+            hda.Hist.new
+            .StrCat(["Full","CutNoDelta","DeltaGr250","DeltaGr0","DeltaGr125","MinAsy"], growth=True, name="cuts")
+            .Reg(1000, -1500, 1500, name="delta", label="Trijet Delta")
+            .Weight()
+        )
 
-        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175)
-        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="CutNoDelta")
+        h_lead_pt = (
+            hda.Hist.new
+            .StrCat(["Full","CutNoDelta","DeltaGr250","DeltaGr0","DeltaGr125","MinAsy"], growth=True, name="cuts")
+            .Reg(1000, 0, 3000, name="pt", label="Leading Jet Pt")
+            .Weight()
+        )
 
-        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 0)
-        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="DeltaGr0")
+        h_mass.fill(mass=ak.flatten(good_events.Trijet.mass), cuts="Full")
+        h_HT.fill(ht=good_events.HT, cuts="Full")
+        h_delta.fill(delta=ak.flatten(good_events.Trijet.delta,axis=1), cuts="Full")
+        h_lead_pt.fill(pt=good_events.ScoutingJet[:,0].pt, cuts="Full")
 
-        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 125)
-        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="DeltaGr125")
+        overallcut = (good_events.HT > 550) & (good_events.mds6332 < 1.25)
+        cut_events = good_events[overallcut]
 
-        # cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 250)
-        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="DeltaGr250")
+        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175)
+        h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="CutNoDelta")
+        h_HT.fill(ht=cut_events.HT, cuts="CutNoDelta")
+        h_delta.fill(delta=ak.flatten(cut_events.Trijet[cut].delta,axis=1), cuts="CutNoDelta")
+        h_lead_pt.fill(pt=cut_events.ScoutingJet[:,0].pt, cuts="CutNoDelta")
 
-        # cut_events = good_events #[overallcut]
-        # cut = ak.argmin(cut_events.Trijet.masym,axis=1,keepdims=True)
-        # h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="MinAsy")
+        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 0)
+        h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="DeltaGr0")
+        h_HT.fill(ht=cut_events.HT, cuts="DeltaGr0")
+        h_delta.fill(delta=ak.flatten(cut_events.Trijet[cut].delta,axis=1), cuts="DeltaGr0")
+        h_lead_pt.fill(pt=cut_events.ScoutingJet[:,0].pt, cuts="DeltaGr0")
+
+        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 125)
+        h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="DeltaGr125")
+        h_HT.fill(ht=cut_events.HT, cuts="DeltaGr125")
+        h_delta.fill(delta=ak.flatten(cut_events.Trijet[cut].delta,axis=1), cuts="DeltaGr125")
+        h_lead_pt.fill(pt=cut_events.ScoutingJet[:,0].pt, cuts="DeltaGr125")
+
+        cut = (cut_events.Trijet.masym < 0.15) & (cut_events.Trijet.mds < 0.175) & (cut_events.Trijet.delta > 250)
+        h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="DeltaGr250")
+        h_HT.fill(ht=cut_events.HT, cuts="DeltaGr250")
+        h_delta.fill(delta=ak.flatten(cut_events.Trijet[cut].delta,axis=1), cuts="DeltaGr250")
+        h_lead_pt.fill(pt=cut_events.ScoutingJet[:,0].pt, cuts="DeltaGr250")
+
+        cut_events = good_events #[overallcut]
+        cut = ak.argmin(cut_events.Trijet.masym,axis=1,keepdims=True)
+        h_mass.fill(mass=ak.flatten(cut_events.Trijet[cut].mass), cuts="MinAsy")
+        h_HT.fill(ht=cut_events.HT, cuts="MinAsy")
+        h_delta.fill(delta=ak.flatten(cut_events.Trijet[cut].delta,axis=1), cuts="MinAsy")
+        h_lead_pt.fill(pt=cut_events.ScoutingJet[:,0].pt, cuts="MinAsy")
 
         return {
             dataset: {
-                #"mass": h_mass,
-                #"pt": ak.num(good_events, axis=0),
-                "cut": cut,
+                "mass": h_mass,
+                "num_events": ak.num(events, axis=0),
+                "HT": h_HT,
+                "delta": h_delta,
+                "lead_pt": h_lead_pt,
             },
         }
 

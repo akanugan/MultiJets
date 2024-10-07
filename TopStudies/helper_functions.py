@@ -1,10 +1,12 @@
 """Various physics functions used in the processors."""
 
 import awkward as ak
-from coffea.analysis_tools import PackedSelection
+
+# from coffea.analysis_tools import PackedSelection
 
 x_sections = {
-                "QCD_PT-120to170": 445800.0,
+                #"QCD_PT-120to170": 445800.0,
+                "QCD_PT-120to170": 0.0,
                 "QCD_PT-170to300": 113700.0,
                 "QCD_PT-300to470": 7589.0,
                 "QCD_PT-470to600": 626.4,
@@ -17,6 +19,12 @@ x_sections = {
                 "QCD_PT-3200": 0.0002331,
                 "TTto4Q": 762.1,
 }
+
+def x_sec(name: str) -> float:
+    key = sample_name(name)
+    if key == None:
+        return 0.0
+    return x_sections[key]
 
 def sample_name(name: str) -> str:
     """Find a sample key in a given string.
@@ -48,6 +56,17 @@ def mass_asymmetry(sj, tj):
     ovm =other_vector.mass
     masym = (vm - ovm)/(vm + ovm)
     return masym
+
+def d_phi(sj, tj):
+    total_p4 = sj[:,0] + sj[:,1] + sj[:,2] + sj[:,3] + sj[:,4] + sj[:,5]
+    cart = ak.cartesian([total_p4, tj])
+    vector = (cart["1"].j1 + cart["1"].j2 + cart["1"].j3)
+    other_vector = (cart["0"] - vector)
+
+    vp = vector.phi
+    ovp = other_vector.phi
+
+    return vp - ovp
 
 def tri_mds(tj) -> tuple:
     """Find the mds scores and pairs of invariant masses.
@@ -84,45 +103,58 @@ def tri_mds6332(sj, tj, mds):
     r120 = 1/(20**0.5)
     return ak.sum(((((tj.j1 + tj.j2 + tj.j3).mass/den)**2 + mds**0.5)-r120)**2, axis=1)
 
-def temp():
-    sel = PackedSelection()
+def prune_jets(ev,jet_eta_cut: float=2.4, jet_pt_cut: float=30):
+# changed this to tight_jet or something like that
+# clean jet or jet cleaning
+    res = ev
+    jet_cut = (abs(res.ScoutingJet.eta) < jet_eta_cut) \
+          & (res.ScoutingJet.pt > jet_pt_cut) \
+          & (res.ScoutingJet.neHEF < 0.90) \
+          & (res.ScoutingJet.neEmEF < 0.90) \
+          & (res.ScoutingJet.nConstituents > 1) \
+          & (res.ScoutingJet.muEmEF < 0.80) \
+          & (res.ScoutingJet.chHEF > 0.01) \
+          & (res.ScoutingJet.nCh > 0) \
+          & (res.ScoutingJet.chEmEF < 0.80)
+    res["ScoutingJet"] = res.ScoutingJet[jet_cut]
+    return res
 
-def format_trijet_events(ev, jet_eta_cut: float=2.4):
-    # vec.register_awkward()
+def format_trijet_events(ev, jet_eta_cut: float=2.4, jet_pt_cut: float=30):
 
     # sel = PackedSelection()
     # sel.add("SixJets", ak.num(ev.ScoutingJet[ev.ScoutingJet.eta < jet_eta_cut], axis=1) >= 6)
 
-    # result = ev[sel.all("SixJets")]
+    pruned = prune_jets(ev,jet_eta_cut,jet_pt_cut)
 
-    # result = ev[ak.num(ev.ScoutingJet[ev.ScoutingJet.eta < 2.4], axis=1) >= 6]
-    result = ev
-    # selected_jets = result.ScoutingJet[result.ScoutingJet.eta < jet_eta_cut][:,0:6]
-    # trijet = ak.combinations(selected_jets, 3, fields=["j1","j2","j3"])
+    result = pruned[ak.num(pruned.ScoutingJet,axis=1) >= 6]
 
-    # mds_val, m12, m13, m23 = tri_mds(trijet)
+    selected_jets = result.ScoutingJet[:,0:6]
+    trijet = ak.combinations(selected_jets, 3, fields=["j1","j2","j3"])
 
-    # result["Trijet"] = ak.zip(
-    #     {
-    #         "j1": trijet.j1,
-    #         "j2": trijet.j2,
-    #         "j3": trijet.j3,
-    #         "px": trijet.j1.px + trijet.j2.px + trijet.j3.px,
-    #         "py": trijet.j1.py + trijet.j2.py + trijet.j3.py,
-    #         "pz": trijet.j1.pz + trijet.j2.pz + trijet.j3.pz,
-    #         "e": trijet.j1.E + trijet.j2.E + trijet.j3.E,
-    #         "masym": mass_asymmetry(selected_jets,trijet),
-    #         "mds": mds_val,
-    #         "m12": m12,
-    #         "m13": m13,
-    #         "m23": m23,
-    #         "delta": tri_delta(trijet),
-    #         "mds63": tri_mds63(selected_jets, trijet),
-    #     },
-    #     with_name="Momentum4D",
-    # )
+    mds_val, m12, m13, m23 = tri_mds(trijet)
 
-    # result["HT"] = ak.sum(abs(result.ScoutingJet.pt), axis=1)
-    # result["mds6332"] = tri_mds6332(selected_jets, trijet, mds_val)
+    result["Trijet"] = ak.zip(
+        {
+            "j1": trijet.j1,
+            "j2": trijet.j2,
+            "j3": trijet.j3,
+            "px": trijet.j1.px + trijet.j2.px + trijet.j3.px,
+            "py": trijet.j1.py + trijet.j2.py + trijet.j3.py,
+            "pz": trijet.j1.pz + trijet.j2.pz + trijet.j3.pz,
+            "e": trijet.j1.E + trijet.j2.E + trijet.j3.E,
+            "masym": mass_asymmetry(selected_jets,trijet),
+            "mds": mds_val,
+            "m12": m12,
+            "m13": m13,
+            "m23": m23,
+            "dphi": d_phi(selected_jets,trijet),
+            "delta": tri_delta(trijet),
+            "mds63": tri_mds63(selected_jets, trijet),
+        },
+        with_name="Momentum4D",
+    )
+
+    result["HT"] = ak.sum(abs(result.ScoutingJet.pt), axis=1)
+    result["mds6332"] = tri_mds6332(selected_jets, trijet, mds_val)
 
     return result
