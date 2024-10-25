@@ -2,23 +2,12 @@ import hist
 import matplotlib.pyplot as plt
 import uproot
 
-from helper_functions import x_sec
+from helper_functions import get_QCD_keys, x_sec
 
 file = uproot.open("tight_jet_constraint.root")
 
 a = None
-keys = [
-"QCD_PT-120to170",
-"QCD_PT-170to300",
-"QCD_PT-300to470",
-"QCD_PT-470to600",
-"QCD_PT-600to800",
-"QCD_PT-800to1000",
-"QCD_PT-1000to1400",
-"QCD_PT-1800to2400",
-"QCD_PT-1400to1800",
-"QCD_PT-2400to3200",
-"QCD_PT-3200"]
+keys = get_QCD_keys()
 
 cats = [
     file["mass/" + "QCD_PT-600to800"].to_hist().axes[0].value(i)

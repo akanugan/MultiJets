@@ -5,7 +5,6 @@ Implements a couple of different processors that can then be run by an analyzer.
 
 import awkward as ak
 import hist.dask as hda
-import numpy as np
 from coffea.processor import ProcessorABC
 
 from helper_functions import format_trijet_events
@@ -277,6 +276,31 @@ class TrijetProcessor(ProcessorABC):
                 "HT": h_HT,
                 "delta": h_delta,
                 "lead_pt": h_lead_pt,
+            },
+        }
+
+
+    def postprocess(self, accumulator):
+        pass
+
+
+class TrijetWriterProcessor(ProcessorABC):
+    """Processor to search for Trijets."""
+
+    def __init__(self):
+        """Init class."""
+
+    def process(self, events):
+        dataset = events.metadata["dataset"]
+
+        good_events = format_trijet_events(events, jet_eta_cut=2.4)
+
+        return {
+            dataset: {
+                "Trijet": good_events.Trijet,
+                "HT": good_events.HT,
+                "mds6332": good_events.mds6332,
+                "num_events": ak.num(events, axis=0),
             },
         }
 

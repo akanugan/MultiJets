@@ -5,8 +5,7 @@ import awkward as ak
 # from coffea.analysis_tools import PackedSelection
 
 x_sections = {
-                #"QCD_PT-120to170": 445800.0,
-                "QCD_PT-120to170": 0.0,
+                "QCD_PT-120to170": 445800.0,
                 "QCD_PT-170to300": 113700.0,
                 "QCD_PT-300to470": 7589.0,
                 "QCD_PT-470to600": 626.4,
@@ -19,6 +18,9 @@ x_sections = {
                 "QCD_PT-3200": 0.0002331,
                 "TTto4Q": 762.1,
 }
+
+def get_QCD_keys():
+    return [key for key in x_sections if "QCD" in key]
 
 def x_sec(name: str) -> float:
     key = sample_name(name)
