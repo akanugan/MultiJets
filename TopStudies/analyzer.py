@@ -18,7 +18,7 @@ from distributed import Client
 from lpcjobqueue import LPCCondorCluster
 
 from filelists_helper import small_ttbar_fileset
-from processors import TrijetWriterProcessor
+from processors import TrijetProcessor
 
 
 class ScoutingNanoAODSchema(NanoAODSchema):
@@ -103,46 +103,53 @@ def plot_mass_histograms(mass_hist, name: str) -> None:
 if __name__ == "__main__":
     tag = str(sys.argv[1]) if len(sys.argv) > 1 else "default"
 
-    cluster = LPCCondorCluster(memory="3GB", log_directory="/uscmst1b_scratch/lpc1/3DayLifetime/jlawless/")
+    cluster = LPCCondorCluster(
+        memory="8GB",
+        log_directory="/uscmst1b_scratch/lpc1/3DayLifetime/jlawless/",
+        )
     cluster.adapt(minimum=1, maximum=200)
 
     fileset = small_ttbar_fileset()
 
     print("entering analyzer")
     with Client(cluster) as client:
-        result = run_preprocessed_analysis(TrijetWriterProcessor, fileset, metadata="Trijet")
+        result = run_preprocessed_analysis(TrijetProcessor, fileset, metadata="Trijet")
 
     print(result)
 
-    file = uproot.recreate(str(sys.argv[1]) + ".root")
-    for key in fileset:
-        trij = result[key][key]["Trijet"]
-        file["tree"] = {
-            "trijet": {
-                "px": trij.px,
-                "py": trij.py,
-                "pz": trij.pz,
-                "e": trij.e,
-                "masym": trij.masym,
-                "mds": trij.mds,
-                "m12": trij.m12,
-                "m13": trij.m13,
-                "m23": trij.m23,
-                "dphi": trij.dphi,
-                "delta": trij.delta,
-                "mds63": trij.mds63,
-            },
-            "HT": result[key][key]["HT"],
-            "mds6332": result[key][key]["mds6332"],
-        }
-        file["ev/" + key] = str(result[key][key]["num_events"])
+
+
+    """Right now I'm writing the output manually. I should find a better way to do this."""
 
     # file = uproot.recreate(str(sys.argv[1]) + ".root")
     # for key in fileset:
-    #     file["mass/" + key] = result[key][key]["mass"]
+    #     trij = result[key][key]["Trijet"]
+    #     file["tree"] = {
+    #         "trijet": {
+    #             "px": trij.px,
+    #             "py": trij.py,
+    #             "pz": trij.pz,
+    #             "e": trij.e,
+    #             "masym": trij.masym,
+    #             "mds": trij.mds,
+    #             "m12": trij.m12,
+    #             "m13": trij.m13,
+    #             "m23": trij.m23,
+    #             "dphi": trij.dphi,
+    #             "delta": trij.delta,
+    #             "mds63": trij.mds63,
+    #         },
+    #         "HT": result[key][key]["HT"],
+    #         "mds6332": result[key][key]["mds6332"],
+    #     }
     #     file["ev/" + key] = str(result[key][key]["num_events"])
-    #     file["ht/" + key] = result[key][key]["HT"]
-    #     file["delta/" + key] = result[key][key]["delta"]
-    #     file["lead_pt/" + key] = result[key][key]["lead_pt"]
 
-    #plot_mass_histograms(result["TTbar"]["TTbar"],tag)
+    file = uproot.recreate(str(sys.argv[1]) + ".root")
+    for key in fileset:
+        file["mass/" + key] = result[key][key]["mass"]
+        file["ev/" + key] = str(result[key][key]["num_events"])
+        file["ht/" + key] = result[key][key]["HT"]
+        file["delta/" + key] = result[key][key]["delta"]
+        file["lead_pt/" + key] = result[key][key]["lead_pt"]
+
+    plot_mass_histograms(result["TTbar"]["TTbar"],tag)
