@@ -26,3 +26,4 @@ bootstrap.sh
 .condor_config
 shell
 logo-svg.svg
+*.tar.gz
