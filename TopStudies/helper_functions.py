@@ -1,12 +1,6 @@
 """Various physics functions used in the processors."""
 
 import awkward as ak
-from coffea.jetmet_tools import (
-    CorrectedJetsFactory,
-    FactorizedJetCorrector,
-    JECStack,
-    JetCorrectionUncertainty,
-)
 from coffea.lookup_tools import extractor
 
 # from coffea.analysis_tools import PackedSelection
@@ -112,72 +106,45 @@ def tri_mds6332(sj, tj, mds):
     r120 = 1/(20**0.5)
     return ak.sum(((((tj.j1 + tj.j2 + tj.j3).mass/den)**2 + mds**0.5)-r120)**2, axis=1)
 
-def apply_JEC_MC(ev):
+def apply_JEC_MC(ev, dir_name, name, type):
     ext = extractor()
     ext.add_weight_sets(
         [
-            "* * corrections/Summer22EE_22Sep2023_V2_MC/Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi.txt",
-            "* * corrections/Summer22EE_22Sep2023_V2_MC/Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi.txt",
-            "* * corrections/Summer22EE_22Sep2023_V2_MC/Summer22EE_22Sep2023_V2_MC_L2L3Residual_AK4PFPuppi.txt",
-            "* * corrections/Summer22EE_22Sep2023_V2_MC/Summer22EE_22Sep2023_V2_MC_L2Residual_AK4PFPuppi.txt",
-            "* * corrections/Summer22EE_22Sep2023_V2_MC/Summer22EE_22Sep2023_V2_MC_L3Absolute_AK4PFPuppi.txt",
-            "* * corrections/Summer22EE_22Sep2023_V2_MC/Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt",
+            "* * corrections/" + dir_name + "/" + name + "_L1FastJet_AK4PF" + type + ".txt",
+            "* * corrections/" + dir_name + "/" + name + "_L2Residual_AK4PF" + type + ".txt",
+            "* * corrections/" + dir_name + "/" + name + "_L2Relative_AK4PF" + type + ".txt",
+            "* * corrections/" + dir_name + "/" + name + "_L3Absolute_AK4PF" + type + ".txt",
+            "* * corrections/" + dir_name + "/" + name + "_L2L3Residual_AK4PF" + type + ".txt",
+            #"* * corrections/Summer22EE_22Sep2023_V2_MC/Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi.junc.txt",
         ],
     )
     ext.finalize()
 
+
     jec_stack_names = [
-        "Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi",
-        "Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi",
-        "Summer22EE_22Sep2023_V2_MC_L2L3Residual_AK4PFPuppi",
-        "Summer22EE_22Sep2023_V2_MC_L2Residual_AK4PFPuppi",
-        "Summer22EE_22Sep2023_V2_MC_L3Absolute_AK4PFPuppi",
-        "Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi",
+        name + "_L1FastJet_AK4PF"+ type,
+        name + "_L2Relative_AK4PF"+ type,
+        # name + "_L2Residual_AK4PF"+ type,
+        name + "_L3Absolute_AK4PF"+ type,
+        # name + "_L2L3Residual_AK4PF"+ type,
+        #"Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi",
     ]
 
     evaluator = ext.make_evaluator()
-    jec_inputs = {name: evaluator[name] for name in jec_stack_names}
-    jec_stack = JECStack(jec_inputs)
 
-    name_map = jec_stack.blank_name_map
-    name_map["JetPt"] = "pt"
-    name_map["JetMass"] = "mass"
-    name_map["JetEta"] = "eta"
-    name_map["JetA"] = "area"
+    corr_jets = ev.ScoutingJet
+    corr_jets["pt_raw"] = corr_jets.pt
 
-    jets = ev.ScoutingJet
-
-    jets["pt_raw"] = jets["pt"]
-    jets["mass_raw"] = jets["mass"]
-    jets["rho"] = ak.broadcast_arrays(ev.ScoutingRho, jets.pt)[0]
-    name_map["ptGenJet"] = "pt_gen"
-    name_map["ptRaw"] = "pt_raw"
-    name_map["massRaw"] = "mass_raw"
-    name_map["Rho"] = "rho"
-
-    corrector = FactorizedJetCorrector(
-        Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi=evaluator["Summer22EE_22Sep2023_V2_MC_L2Relative_AK4PFPuppi"],
-        Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi=evaluator["Summer22EE_22Sep2023_V2_MC_L1FastJet_AK4PFPuppi"],
-        Summer22EE_22Sep2023_V2_MC_L2L3Residual_AK4PFPuppi=evaluator["Summer22EE_22Sep2023_V2_MC_L2L3Residual_AK4PFPuppi"],
-        Summer22EE_22Sep2023_V2_MC_L2Residual_AK4PFPuppi=evaluator["Summer22EE_22Sep2023_V2_MC_L2Residual_AK4PFPuppi"],
-        Summer22EE_22Sep2023_V2_MC_L3Absolute_AK4PFPuppi=evaluator["Summer22EE_22Sep2023_V2_MC_L3Absolute_AK4PFPuppi"],
-    )
-
-    uncertainties = JetCorrectionUncertainty(
-        Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi=evaluator["Summer22EE_22Sep2023_V2_MC_Uncertainty_AK4PFPuppi"],
-    )
-
-    jet_factory = CorrectedJetsFactory(name_map, jec_stack)
-
-    res = ev
-    res["ScoutingJet"] = jet_factory.build(jets)
-    return res
+    for i in range(len(jec_stack_names)):
+        scale_factor = evaluator[jec_stack_names[i]](corr_jets.eta, corr_jets.pt, ev.ScoutingRho, corr_jets.area)
+        corr_jets["pt"] = scale_factor*corr_jets.pt
+    return corr_jets
 
 def tight_jets(ev,jet_eta_cut: float=2.4, jet_pt_cut: float=30):
 # changed this to tight_jet or something like that
 # clean jet or jet cleaning
-    #res = apply_JEC_MC(ev)
-    res=ev
+    res = ev
+    res["ScoutingJet"] = apply_JEC_MC(ev, "Summer22EE_22Sep2023_V2_MC", "Summer22EE_22Sep2023_V2_MC","Puppi")
     jet_cut = (abs(res.ScoutingJet.eta) < jet_eta_cut) \
           & (res.ScoutingJet.pt > jet_pt_cut) \
           & (res.ScoutingJet.neHEF < 0.90) \
