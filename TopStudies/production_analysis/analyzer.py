@@ -15,9 +15,8 @@ from coffea.dataset_tools import (
 from coffea.nanoevents import NanoAODSchema, NanoEventsFactory
 from coffea.processor import ProcessorABC
 from distributed import Client
+from filelists_helper import small_axo_fileset
 from lpcjobqueue import LPCCondorCluster
-
-from filelists_helper import small_ttbar_fileset
 from processors import TrijetProcessor
 
 
@@ -65,7 +64,7 @@ def run_analysis(processor: ProcessorABC, file_list: list, metadata: str="Sample
     print("entering ScoutingNanoAODSchema")
 
     small_events = NanoEventsFactory.from_root(
-        {file : "Events" for file in file_list},
+        dict.fromkeys(file_list, "Events"),
         schemaclass=ScoutingNanoAODSchema,
         metadata={"dataset": metadata},
     ).events()
@@ -104,12 +103,13 @@ if __name__ == "__main__":
     tag = str(sys.argv[1]) if len(sys.argv) > 1 else "default"
 
     cluster = LPCCondorCluster(
-        memory="8GB",
+        memory="4GB",
         log_directory="/uscmst1b_scratch/lpc1/3DayLifetime/jlawless/",
+
         )
     cluster.adapt(minimum=1, maximum=200)
 
-    fileset = small_ttbar_fileset()
+    fileset = small_axo_fileset()
 
     print("entering analyzer")
     with Client(cluster) as client:

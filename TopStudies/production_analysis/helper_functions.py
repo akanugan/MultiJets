@@ -144,7 +144,7 @@ def tight_jets(ev,jet_eta_cut: float=2.4, jet_pt_cut: float=30):
 # changed this to tight_jet or something like that
 # clean jet or jet cleaning
     res = ev
-    res["ScoutingJet"] = apply_JEC_MC(ev, "Summer22EE_22Sep2023_V2_MC", "Summer22EE_22Sep2023_V2_MC","Puppi")
+    # res["ScoutingJet"] = apply_JEC_MC(ev, "Summer22EE_22Sep2023_V2_MC", "Summer22EE_22Sep2023_V2_MC","Puppi")
     jet_cut = (abs(res.ScoutingJet.eta) < jet_eta_cut) \
           & (res.ScoutingJet.pt > jet_pt_cut) \
           & (res.ScoutingJet.neHEF < 0.90) \

@@ -6,7 +6,6 @@ Implements a couple of different processors that can then be run by an analyzer.
 import awkward as ak
 import hist.dask as hda
 from coffea.processor import ProcessorABC
-
 from helper_functions import format_trijet_events
 
 

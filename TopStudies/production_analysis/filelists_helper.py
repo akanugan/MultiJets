@@ -3,13 +3,25 @@
 from helper_functions import sample_name
 
 
+def small_axo_fileset():
+    file_list = [line.strip("\n") for line in open("filelists/axo_ttbar_MC_0002.txt").readlines()]
+    file_list = ["root://cmseos.cern.ch//" + string for string in file_list]
+
+    print(file_list)
+    fileset = {
+        "TTbar": {
+            "files": {file : "Events" for file in file_list[0:40]},
+        },
+    }
+    return fileset
+
 def small_ttbar_fileset():
     file_list = [line.strip("\n") for line in open("filelists/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_0000.txt").readlines()] + [line.strip("\n") for line in open("filelists/TTto4Q_TuneCP5_13p6TeV_powheg-pythia8_0001.txt").readlines()]
     file_list = ["root://cmseos.fnal.gov//" + string for string in file_list]
 
     fileset = {
         "TTbar": {
-            "files": {file : "Events" for file in file_list[0:40]},
+            "files": dict.fromkeys(file_list[0:40], "Events"),
         },
     }
     return fileset
@@ -21,7 +33,7 @@ def mc_fileset():
 
     fileset = {
         "TTbar": {
-            "files": {file : "Events" for file in file_list},
+            "files": dict.fromkeys(file_list, "Events"),
         },
     }
 
@@ -30,7 +42,7 @@ def mc_fileset():
         file_list = ["root://cmseos.fnal.gov//" + string for string in file_list]
         name = sample_name(f)
         fileset[name] = {
-            "files": {file : "Events" for file in file_list},
+            "files": dict.fromkeys(file_list, "Events"),
         }
 
     return fileset
@@ -41,6 +53,6 @@ def data_test_fileset():
 
     return {
         "Run2022F_360335-360941_0002": {
-             "files": {file : "Events" for file in file_list},
+             "files": dict.fromkeys(file_list, "Events"),
         },
     }
